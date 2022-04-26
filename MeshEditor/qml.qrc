@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/qml">
+        <file>main.qml</file>
+        <file>LightSettings.qml</file>
+        <file>SceneModelList.qml</file>
+        <file>SceneLightList.qml</file>
+        <file>ModelSettings.qml</file>
+    </qresource>
+</RCC>
