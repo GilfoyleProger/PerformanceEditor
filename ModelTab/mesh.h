@@ -28,6 +28,7 @@ public:
 	void setShaderUniform(std::string name, QVector2D value);
 	void setShaderUniform(std::string name, GLfloat value);
 	void setShaderUniform(std::string name, bool value);
+	void setShaderUniform(std::string name, GLint value);
 	void setTextures(std::vector<int> textures);
 	void setMeshName(std::string inName) {
 		meshName = inName;
@@ -35,10 +36,46 @@ public:
 	std::string getMeshName() {
 		return meshName;// = inName;
 	}
+	const Texture* getDiffuseMap() const
+	{
+		for (int i = 0; i < texturesId.size(); i++)
+		{
+			Texture* texture = renderEngine->getTexture(texturesId[i]);
+			if (texture) {
+				if (texture->type == "diffuseMap")
+				{
+					return renderEngine->getTexture(texturesId[i]);
+				}
+			}
+		}
+		return nullptr;
+	}
+	const Texture* getSpecularMap() const
+	{
+		for (int i = 0; i < texturesId.size(); i++)
+		{
+			if (renderEngine->getTexture(texturesId[i])->type == "specularMap")
+			{
+				return renderEngine->getTexture(texturesId[i]);
+			}
+		}
+		return nullptr;
+	}
+	const Texture* getNormalMap() const
+	{
+		for (int i = 0; i < texturesId.size(); i++)
+		{
+			if (renderEngine->getTexture(texturesId[i])->type == "normalMap")
+			{
+				return renderEngine->getTexture(texturesId[i]);
+			}
+		}
+		return nullptr;
+	}
 private:
 	HalfEdge::HalfEdgeTable halfEdgeTable;
 	UniformContainer uniformContainer;
-	//GLRenderEngine* renderEngine;
+	GLRenderEngine* renderEngine;
 	std::string meshName = "";
 	Container container;
 	Material material;

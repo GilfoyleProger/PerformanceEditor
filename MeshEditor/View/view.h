@@ -9,7 +9,7 @@
 #include "Controller/filtervalue.h"
 #include "nodeoctree.h"
 #include "Controller/manipulator.h"
-#include "Controller/transformnodeoperator.h"
+#include "Controller/transformnodecontroller.h"
 
 #include<QObject>
 #include <QVector3D>
@@ -18,12 +18,14 @@
 #include "selectionbuffer.h"
 
 class ViewRenderer;
+
 class View : public QQuickFramebufferObject
 {
 	Q_OBJECT
+    //Q_PROPERTY(void nodes READ nodes NOTIFY modelsChanged)
 public:
-	void addNodeInfo();
-
+      void addNodeInfo();
+//void addPointLight();
 
 	explicit View(QQuickItem* parent = 0);
 	Renderer* createRenderer() const override;
@@ -63,12 +65,25 @@ public:
 	ViewRenderer* renderer;
 	ModelTab* modelTab;
 	// ModelStorage* modelStorage;
+    bool isMouseTrackingEnabled = true;
 public slots:
 	void loadModel(QString path);
+    void saveModel(QString path);
+    void addPointLight();
+    void removePointLight(int index);
+	void removeModel(int index);
+	void runTransformOperator(Node* node);
 signals:
 	void startAddNodeInfoAction();
-private:
+	void completeLoadModel(Node* node);
 
+private:
+	enum class MouseState { Release, Drag, Press };
+	MouseState prevMouseState = MouseState::Release;
+	
+	void mouseTracking(MouseState state, double x, double y);
+
+	
 	// std::unique_ptr<Manipulator> manipulatorPtr;
 	ControllerDispatcher controllerDispatcher;
 	Viewport viewport;

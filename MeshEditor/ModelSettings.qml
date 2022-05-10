@@ -11,8 +11,34 @@ import QtQuick.Controls.Material 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 1.3
 
+Flickable{
+   // width: 200; height: 200
+    contentHeight: layout.height
+    contentWidth: layout.width
+clip:true
+boundsBehavior: Flickable.StopAtBounds
+    ScrollBar.vertical: ScrollBar{}
+/*ScrollBar {
+    id: vbar
+    hoverEnabled: true
+    active: true//hovered || pressed
+    orientation: Qt.Vertical
+    size: layout.height / content.height
+    anchors.top: parent.top
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+}*/
 ColumnLayout {
-
+    Rectangle {
+            color: "#EDF2F4" //"#F5F5F5"
+            anchors.fill:parent
+            z:-1
+    }
+id:layout
+//Layout.fillHeight: true
+ //   Layout.fillWidth: true
+//width:330
+//height: 768
     Text {
         text: "Model Settings"
         font.pointSize: 15
@@ -21,9 +47,22 @@ ColumnLayout {
         Layout.leftMargin: 20
     }
 
+    Switch {
+        id: lightingSwitch
+        Layout.topMargin: 5//10
+        Layout.leftMargin: 20
+        property bool isEnable: true
+        text: isEnable ? qsTr("Lighting Enabled") : qsTr("Lighting Disabled")
+        onClicked: {
+            isEnable = !isEnable
+            ModelTab.lightingEnabled = isEnable
+        }
+    }
+
+
     Text {
         Layout.leftMargin: 20
-        Layout.topMargin: 10
+        Layout.topMargin: 5//10
         text: "Select current material"
         font.bold: true
     }
@@ -79,6 +118,10 @@ ColumnLayout {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
+
+                        lightingSwitch.isEnable = ModelTab.lightingEnabled
+                        lightingSwitch.checked = lightingSwitch.isEnable
+
                         materialList.currentMaterialIndex = index
 
                         ambientSwitch.isEnable = ModelTab.currentNode.materials[materialList.currentMaterialIndex].ambientEnabled
@@ -156,6 +199,9 @@ ColumnLayout {
                     ambientColorDialog.color.r = ModelTab.currentNode.materials[materialList.currentMaterialIndex].ambient.x
                     ambientColorDialog.color.g = ModelTab.currentNode.materials[materialList.currentMaterialIndex].ambient.y
                     ambientColorDialog.color.b = ModelTab.currentNode.materials[materialList.currentMaterialIndex].ambient.z
+
+                    lightingSwitch.isEnable = ModelTab.lightingEnabled
+                    lightingSwitch.checked = lightingSwitch.isEnable
                 }
             }
 
@@ -207,6 +253,9 @@ ColumnLayout {
                     diffuseColorDialog.color.r = ModelTab.currentNode.materials[materialList.currentMaterialIndex].diffuse.x
                     diffuseColorDialog.color.g = ModelTab.currentNode.materials[materialList.currentMaterialIndex].diffuse.y
                     diffuseColorDialog.color.b = ModelTab.currentNode.materials[materialList.currentMaterialIndex].diffuse.z
+
+                    lightingSwitch.isEnable = ModelTab.lightingEnabled
+                    lightingSwitch.checked = lightingSwitch.isEnable
                 }
             }
 
@@ -272,6 +321,9 @@ ColumnLayout {
                     specularColorDialog.color.r = ModelTab.currentNode.materials[materialList.currentMaterialIndex].specular.x
                     specularColorDialog.color.g = ModelTab.currentNode.materials[materialList.currentMaterialIndex].specular.y
                     specularColorDialog.color.b = ModelTab.currentNode.materials[materialList.currentMaterialIndex].specular.z
+
+                    lightingSwitch.isEnable = ModelTab.lightingEnabled
+                    lightingSwitch.checked = lightingSwitch.isEnable
                 }
             }
 
@@ -358,6 +410,9 @@ ColumnLayout {
                     emissionColorDialog.color.r = ModelTab.currentNode.materials[materialList.currentMaterialIndex].emission.x
                     emissionColorDialog.color.g = ModelTab.currentNode.materials[materialList.currentMaterialIndex].emission.y
                     emissionColorDialog.color.b = ModelTab.currentNode.materials[materialList.currentMaterialIndex].emission.z
+
+                    lightingSwitch.isEnable = ModelTab.lightingEnabled
+                    lightingSwitch.checked = lightingSwitch.isEnable
                 }
             }
 
@@ -383,4 +438,130 @@ ColumnLayout {
             }
         }
     }
+
+
+
+    Label {
+        Layout.leftMargin: 20
+        text: "diffuse map"
+    }
+
+    ColumnLayout {
+
+        Layout.leftMargin: 30
+        Switch {
+            id: diffuseMapSwitch
+            property bool isEnable: true
+            text: isEnable ? qsTr("Enable") : qsTr("Disable")
+            onClicked: {
+                isEnable =! isEnable
+                ModelTab.currentNode.materials[materialList.currentMaterialIndex].diffuseMapEnabled = isEnable
+            }
+        }
+
+        RowLayout {
+            Layout.leftMargin: 10
+            enabled: diffuseMapSwitch.isEnable
+
+            Label {
+                color: diffuseMapSwitch.isEnable ? "black" : "gray"
+                text:
+                      ModelTab.currentNode === null ? "name: none" :
+                      "name: " + ModelTab.currentNode.materials[materialList.currentMaterialIndex].diffuseMapName
+            }
+
+            Connections {
+                target: ModelTab
+                function onCurrentNodeChanged() {
+                    materialList.currentMaterialIndex = 0
+                    diffuseMapSwitch.isEnable = ModelTab.currentNode.materials[materialList.currentMaterialIndex].diffuseMapEnabled
+                    diffuseMapSwitch.checked = diffuseMapSwitch.isEnable
+                }
+            }
+        }
+    }
+
+
+    Label {
+        Layout.leftMargin: 20
+        text: "specular map"
+    }
+
+    ColumnLayout {
+        Layout.leftMargin: 30
+        Switch {
+            id: specularMapSwitch
+            property bool isEnable: true
+            text: isEnable ? qsTr("Enable") : qsTr("Disable")
+            onClicked: {
+                isEnable =! isEnable
+                ModelTab.currentNode.materials[materialList.currentMaterialIndex].specularMapEnabled = isEnable
+            }
+        }
+
+        RowLayout {
+            Layout.leftMargin: 10
+            enabled: specularMapSwitch.isEnable
+
+            Label {
+                color: specularMapSwitch.isEnable ? "black" : "gray"
+                text:  ModelTab.currentNode === null ? "name: none" :
+                       "name: " + ModelTab.currentNode.materials[materialList.currentMaterialIndex].specularMapName
+
+            }
+
+            Connections {
+                target: ModelTab
+                function onCurrentNodeChanged() {
+                    materialList.currentMaterialIndex = 0
+                    specularMapSwitch.isEnable = ModelTab.currentNode.materials[materialList.currentMaterialIndex].specularMapEnabled
+                    specularMapSwitch.checked = specularMapSwitch.isEnable
+                }
+            }
+        }
+    }
+
+    Label {
+        Layout.leftMargin: 20
+        text: "normal map"
+    }
+
+    ColumnLayout {
+        Layout.leftMargin: 30
+        Layout.bottomMargin: 10
+        Switch {
+            id: normalMapSwitch
+            property bool isEnable: true
+            text: isEnable ? qsTr("Enable") : qsTr("Disable")
+            onClicked: {
+                isEnable =! isEnable
+                ModelTab.currentNode.materials[materialList.currentMaterialIndex].specularMapEnabled = isEnable
+            }
+        }
+
+        RowLayout {
+            Layout.leftMargin: 10
+            enabled: normalMapSwitch.isEnable
+
+            Label {
+                color: normalMapSwitch.isEnable ? "black" : "gray"
+                text: ModelTab.currentNode === null ? "name: none" :
+                      "name: " + ModelTab.currentNode.materials[materialList.currentMaterialIndex].normalMapName
+
+            }
+
+            Connections {
+                target: ModelTab
+                function onCurrentNodeChanged() {
+                    materialList.currentMaterialIndex = 0
+                    normalMapSwitch.isEnable = ModelTab.currentNode.materials[materialList.currentMaterialIndex].normalMapEnabled
+                    normalMapSwitch.checked = normalMapSwitch.isEnable
+                }
+            }
+        }
+    }
+
+
+}
+
 }

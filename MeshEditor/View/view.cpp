@@ -12,7 +12,6 @@
 #include "glrenderengine.h"
 
 #include "buildplate.h"
-#include "Controller/addroadtilecontroller.h"
 #include "modelloader.h"
 #include <glm/gtx/string_cast.hpp>
 #include "nodeoctree.h"
@@ -29,14 +28,14 @@ public:
 	}
 
 	ViewRenderer()
-    {
+	{
 		renderEngine = std::make_unique<GLRenderEngine>();
 		renderEngine->init();
 
 		//std::string vertexShaderPath = QDir::currentPath().toStdString() + "/shaders/object.vs";
 		//std::string fragmentShaderPath = QDir::currentPath().toStdString() + "/shaders/object.fs";
-		std::string vertexShaderPath = "C:/Users/Stepan/Documents/workspace/PerformanceEditor/MeshEditor/shaders/object.vert";
-		std::string fragmentShaderPath = "C:/Users/Stepan/Documents/workspace/PerformanceEditor/MeshEditor/shaders/object.frag";
+		std::string vertexShaderPath = "C:/Users/Stepan/Documents/workplace/PerformanceEditor/MeshEditor/shaders/object.vert";
+		std::string fragmentShaderPath = "C:/Users/Stepan/Documents/workplace/PerformanceEditor/MeshEditor/shaders/object.frag";
 		shaderProgram = std::unique_ptr<ShaderProgram>(renderEngine->createShaderProgram(vertexShaderPath, fragmentShaderPath));
 
 		vertexShaderPath = "C:/Users/Stepan/Documents/workspace/PerformanceEditor/MeshEditor/shaders/manipulator.vert";
@@ -50,27 +49,31 @@ public:
 		modelPtr = std::make_unique<Model>();
 		loader = new ModelLoader(renderEngine.get());
 
-        //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/textured-cube/cube.obj");
-        std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/red-cube.obj");
+		std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/textured-cube/cube.obj");
+	   // std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/red-cube.obj");
+        //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models1/backpack/low-poly-car.obj");
+        //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models/fbx/futuristicCar.dae");
+      //  std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models/obj/cube.obj");
+		//std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/test1.FBX");
 		if (rootNode) {
-			rootNode->setName("Solid");
-			rootNode->getChildren().back()->setName("Solid");
+            rootNode->setName("car.obj");
+			//rootNode->getChildren().back()->setName("Solid");
 
 
 			modelPtr->attachNode(std::move(rootNode));
 		}
 
-        std::unique_ptr<PointLight> pointLight = std::make_unique<PointLight>();
-        pointLight->ambient() = glm::vec3(0.2, 0.2, 0.2);
-        pointLight->diffuse() = glm::vec3(0.5f, 0.5f, 0.5f);
-        pointLight->specular() = glm::vec3(1.0, 1.0, 1.0);
+		std::unique_ptr<PointLight> pointLight = std::make_unique<PointLight>();
+		pointLight->ambient() = glm::vec3(0.2, 0.2, 0.2);
+		pointLight->diffuse() = glm::vec3(0.5f, 0.5f, 0.5f);
+		pointLight->specular() = glm::vec3(1.0, 1.0, 1.0);
 
-        pointLight->setAmbientEnabled(true);
-        pointLight->setDiffuseEnabled(true);
-        pointLight->setSpecularEnabled(true);
+		pointLight->setAmbientEnabled(true);
+		pointLight->setDiffuseEnabled(true);
+		pointLight->setSpecularEnabled(true);
 
-        pointLight->setPos({ 4,0,0 });
-        pointLight->setName("Light");
+		pointLight->setPos({ 4,0,0 });
+		pointLight->setName("Point Light 0");
 
 
 
@@ -83,36 +86,37 @@ public:
 			for (const auto& node : nodeList)
 				octreePtr->addNode(node);
 
-            octreePtr->addNode(pointLight.get());
-        }
+			octreePtr->addNode(pointLight.get());
+		}
 
-        pointLights.emplace_back(std::move(pointLight));
+		pointLights.emplace_back(std::move(pointLight));
+		//addPointLight();
 	}
 
 	void synchronize(QQuickFramebufferObject* item) override
 	{
 		quickWindowPtr = item->window();
-        viewPtr = static_cast<View*>(item);
-        viewPtr->getViewport().setViewportSize(viewPtr->width(), viewPtr->height());
+		viewPtr = static_cast<View*>(item);
+		viewPtr->getViewport().setViewportSize(viewPtr->width(), viewPtr->height());
 		viewPtr->modelPtr = modelPtr.get();
 		viewPtr->renderEngine = renderEngine.get();
 		viewPtr->octreePtr = octreePtr.get();
-//viewPtr->forceActiveFocus();
-        if (needToInitModel)
-        {
+		//viewPtr->forceActiveFocus();
+		if (needToInitModel)
+		{
 			viewPtr->modelTab->setModel(modelPtr.get());
-            needToInitModel = false;
-            emit viewPtr->startAddNodeInfoAction();
-        }
+			needToInitModel = false;
+			emit viewPtr->startAddNodeInfoAction();
+		}
 
-        if (viewPtr->needToResetManipulator)
+		if (viewPtr->needToResetManipulator)
 		{
 			viewPtr->manipulatorPtr.reset();
-        }
+		}
 
-        if (viewPtr->needToLoadModel)
+		if (viewPtr->needToLoadModel)
 		{
-            std::unique_ptr<Node> rootNode = loader->loadModel(currentModelPathToRead);
+			std::unique_ptr<Node> rootNode = loader->loadModel(currentModelPathToRead);
 			if (rootNode) {
 				modelPtr->attachNode(std::move(rootNode));
 				viewPtr->needToLoadModel = false;
@@ -122,19 +126,25 @@ public:
 					octreePtr->addNode(node);
 
 				emit viewPtr->startAddNodeInfoAction();
+				emit viewPtr->completeLoadModel(modelPtr->getNodes().back().get());
+				//NodeInfo* nodeInfo = viewPtr->modelTab->getNodeInfo(modelPtr->getNodes().back().get());
+				//nodeInfo->setSelected(true);
 			}
-        }
+		}
 
-        viewPtr->renderer = this;
+
+		viewPtr->renderer = this;
 	}
 
 	void render() override
 	{
 		viewPtr->modelPtr = modelPtr.get();
 		viewPtr->renderEngine = renderEngine.get();
-        renderEngine->setViewport(0, 0, viewPtr->width(), viewPtr->height());
-        //renderEngine->clearDisplay(0.2f, 0.2f, 0.2f);
-        renderEngine->clearDisplay(0.0f, 0.0f, 0.0f);
+		renderEngine->setViewport(0, 0, viewPtr->width(), viewPtr->height());
+		//renderEngine->clearDisplay(0.2f, 0.2f, 0.2f);
+		//renderEngine->clearDisplay(0.0f, 0.0f, 0.0f);
+		QVector3D color = viewPtr->modelTab->backgroundColor();
+		renderEngine->clearDisplay(color.x(), color.y(), color.z());
 
 		renderEngine->setProjMatrix(glmMat4ToQMatrix4x4(viewPtr->getViewport().calcProjectionMatrix()));
 		renderEngine->setViewMatrix(glmMat4ToQMatrix4x4(viewPtr->getViewport().getCamera().calcViewMatrix()));
@@ -158,28 +168,37 @@ public:
 	}
 
 
-    std::vector<std::unique_ptr<PointLight>>& getPointLights()
-    {
-        return pointLights;
-    }
+	std::vector<std::unique_ptr<PointLight>>& getPointLights()
+	{
+		return pointLights;
+	}
 
-    std::string currentModelPathToRead;
-
+	Model* getModel() 
+	{
+		return modelPtr.get();
+	}
+	ModelLoader& getLoader() 
+	{
+		return *loader;
+	}
+	std::string currentModelPathToRead;
+	std::vector<std::unique_ptr<PointLight>> pointLights;
+	std::unique_ptr<NodeOctree> octreePtr;
 private:
-    std::vector<std::unique_ptr<PointLight>> pointLights;
-    std::unique_ptr<Model> modelPtr;
-    bool needToInitModel = true;
-    ModelLoader* loader;
+	// std::vector<std::unique_ptr<PointLight>> pointLights;
+	std::unique_ptr<Model> modelPtr;
+	bool needToInitModel = true;
+	ModelLoader* loader;
 	std::unique_ptr<GLRenderEngine> renderEngine;
 	std::unique_ptr<ShaderProgram> shaderProgram;
 
 	QQuickWindow* quickWindowPtr;
-	std::unique_ptr<NodeOctree> octreePtr;
+	//std::unique_ptr<NodeOctree> octreePtr;
 	View* viewPtr;
 
 	std::unique_ptr<ShaderProgram> manipulatorShader;
 	std::unique_ptr<ShaderProgram> lightShader;
-	
+
 	void updateManipulator()
 	{
 		if (!viewPtr->needToResetManipulator)
@@ -200,22 +219,22 @@ private:
 			}
 		}
 	}
-	
+
 	void updateLight()
 	{
-        for(auto& pointLight : pointLights){
-        renderEngine->setWorldMatrix(glmMat4ToQMatrix4x4(pointLight->calcAbsoluteTransform()));
-        for (auto& mesh : pointLight->getMeshes())
-		{
-			lightShader->bind();
-			glm::vec3 color = glm::vec3(1.0f);
-			mesh->setShaderUniform("inColor", { color.x, color.y, color.z });
-            NodeInfo* lightInfo = viewPtr->modelTab->getNodeInfo(pointLight.get());
-            mesh->setShaderUniform("isSelected", lightInfo ? lightInfo->selected() : false);
-            if(pointLight->visible())
-			mesh->render(renderEngine.get(), lightShader.get());
+		for (auto& pointLight : pointLights) {
+			renderEngine->setWorldMatrix(glmMat4ToQMatrix4x4(pointLight->calcAbsoluteTransform()));
+			for (auto& mesh : pointLight->getMeshes())
+			{
+				lightShader->bind();
+				glm::vec3 color = glm::vec3(1.0f);
+				mesh->setShaderUniform("inColor", { color.x, color.y, color.z });
+				NodeInfo* lightInfo = viewPtr->modelTab->getNodeInfo(pointLight.get());
+				mesh->setShaderUniform("isSelected", lightInfo ? lightInfo->selected() : false);
+				if (pointLight->visible())
+					mesh->render(renderEngine.get(), lightShader.get());
+			}
 		}
-        }
 	}
 
 	QMatrix4x4 glmMat4ToQMatrix4x4(glm::mat4 matrix)
@@ -263,24 +282,28 @@ private:
 					mesh->setShaderUniform("material.specularEnabled", mesh->getMaterial().specularEnabled);
 					mesh->setShaderUniform("material.shininess", mesh->getMaterial().shininess);
 
-                    mesh->setShaderUniform("material.emission", QVector3D{ mesh->getMaterial().emission.x, mesh->getMaterial().emission.y, mesh->getMaterial().emission.z });
-                    mesh->setShaderUniform("material.emissionEnabled", mesh->getMaterial().emissionEnabled);
+					mesh->setShaderUniform("material.emission", QVector3D{ mesh->getMaterial().emission.x, mesh->getMaterial().emission.y, mesh->getMaterial().emission.z });
+					mesh->setShaderUniform("material.emissionEnabled", mesh->getMaterial().emissionEnabled);
 
-                    mesh->setShaderUniform("light.ambientEnabled", pointLights[0]->ambientEnabled());
-                    mesh->setShaderUniform("light.diffuseEnabled", pointLights[0]->diffuseEnabled());
-                    mesh->setShaderUniform("light.specularEnabled", pointLights[0]->specularEnabled());
+					//mesh->setShaderUniform("pointLightCount", pointLights.size());
+					mesh->setShaderUniform("lightingEnabled", viewPtr->modelTab->lightingEnabled());
+					mesh->setShaderUniform("pointLightCount", static_cast<GLint>(pointLights.size()));
+					for (int i = 0; i < pointLights.size(); i++)//pointLights.size()
+					{
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].ambientEnabled", pointLights[i]->ambientEnabled());
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].diffuseEnabled", pointLights[i]->diffuseEnabled());
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].specularEnabled", pointLights[i]->specularEnabled());
 
-					
-                    glm::vec3 posit = pointLights[0]->getPos();
-                    mesh->setShaderUniform("light.enabled", pointLights[0]->enabled());
-					
-                    mesh->setShaderUniform("light.position", QVector3D(pointLights[0]->getPos().x, pointLights[0]->getPos().y, pointLights[0]->getPos().z));
-                    mesh->setShaderUniform("light.ambient", { pointLights[0]->ambient().x, pointLights[0]->ambient().y, pointLights[0]->ambient().z });
-                    mesh->setShaderUniform("light.diffuse", { pointLights[0]->diffuse().x,  pointLights[0]->diffuse().y, pointLights[0]->diffuse().z });
-                    mesh->setShaderUniform("light.specular", { pointLights[0]->specular().x, pointLights[0]->specular().y, pointLights[0]->specular().z });
-					
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].enabled", pointLights[i]->enabled());
+
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].position", { pointLights[i]->getPos().x,   pointLights[i]->getPos().y,   pointLights[i]->getPos().z });
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].ambient", { pointLights[i]->ambient().x,  pointLights[i]->ambient().y,  pointLights[i]->ambient().z });
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].diffuse", { pointLights[i]->diffuse().x,  pointLights[i]->diffuse().y,  pointLights[i]->diffuse().z });
+						mesh->setShaderUniform("pointLights[" + std::to_string(i) + "].specular", { pointLights[i]->specular().x, pointLights[i]->specular().y, pointLights[i]->specular().z });
+					}
+
 					auto iter = viewPtr->modelTab->getNodeInfo(node.get());
-                    mesh->setShaderUniform("isSelected", (iter) ? iter->selected() : false);
+					mesh->setShaderUniform("isSelected", (iter) ? iter->selected() : false);
 
 					glm::vec3 eye = viewPtr->getViewport().getCamera().getEye();
 					mesh->setShaderUniform("viewPos", { eye.x, eye.y, eye.z });
@@ -309,13 +332,14 @@ private:
 
 View::View(QQuickItem* parent) : QQuickFramebufferObject(parent)
 {
-    modelTab = new ModelTab;
+	modelTab = new ModelTab;
 
 	s_context->setContextProperty("ModelTab", modelTab);
 
 
-    connect(this, &View::startAddNodeInfoAction, this, &View::addNodeInfo);
-    setMirrorVertically(true);
+	connect(this, &View::startAddNodeInfoAction, this, &View::addNodeInfo, Qt::QueuedConnection);
+	connect(this, &View::completeLoadModel, this, &View::runTransformOperator, Qt::QueuedConnection);
+	setMirrorVertically(true);
 	setAcceptedMouseButtons(Qt::AllButtons);
 	forceActiveFocus();
 
@@ -398,8 +422,9 @@ void View::keyPressEvent(QKeyEvent* event)
 
 void View::mousePressEvent(QMouseEvent* event)
 {
-	ButtonCode buttonCode = ButtonCode::Unknown;
+	prevMouseState = MouseState::Press;
 
+	ButtonCode buttonCode = ButtonCode::Unknown;
 	if (event->button() == Qt::LeftButton)
 		buttonCode = ButtonCode::LeftButton;
 	else if (event->button() == Qt::RightButton)
@@ -415,8 +440,10 @@ void View::mousePressEvent(QMouseEvent* event)
 
 void View::mouseReleaseEvent(QMouseEvent* event)
 {
-	ButtonCode buttonCode = ButtonCode::Unknown;
+	
 
+
+	ButtonCode buttonCode = ButtonCode::Unknown;
 	if (event->button() == Qt::LeftButton)
 		buttonCode = ButtonCode::LeftButton;
 	else if (event->button() == Qt::RightButton)
@@ -427,14 +454,20 @@ void View::mouseReleaseEvent(QMouseEvent* event)
 	QPoint pos = event->pos();
 	double y = viewport.getHeight() - pos.y();
 	controllerDispatcher.processMouseInput(*this, buttonCode, Action::Release, Modifier::NoModifier, pos.x(), pos.y());
+	mouseTracking(prevMouseState, pos.x(), pos.y());
+	prevMouseState = MouseState::Release;
 	update();
 }
 
 void View::mouseMoveEvent(QMouseEvent* event)
 {
+	if (prevMouseState == MouseState::Press)
+		prevMouseState = MouseState::Drag;
+
 	QPoint pos = event->pos();
 	double y = viewport.getHeight() - pos.y();
 	controllerDispatcher.processMouseMove(*this, pos.x(), pos.y());
+	
 	//forceActiveFocus();
 	update();
 }
@@ -618,7 +651,7 @@ NodeOctree* View::getOctree() const
 void View::setManipulator(std::unique_ptr<Manipulator> inManipulator)
 {
 	manipulatorPtr = std::move(inManipulator);
-    needToResetManipulator = false;
+	needToResetManipulator = false;
 	update();
 }
 
@@ -629,30 +662,119 @@ Manipulator* View::getManipulator()
 
 void View::resetManipulator()
 {
-    needToResetManipulator = true;
+	needToResetManipulator = true;
 	update();
 }
 
 void View::loadModel(QString path)
 {
 	path.remove("file:///");
-    renderer->currentModelPathToRead = path.toStdString();
-    needToLoadModel = true;
+	renderer->currentModelPathToRead = path.toStdString();
+	needToLoadModel = true;
 	update();
+}
+
+void View::saveModel(QString path)
+{
+	path.remove("file:///");
+	std::string str = path.toStdString();
+	renderer->getLoader().saveModel(renderer->getModel(), str);
+int k = 0;
 }
 
 void View::addNodeInfo()
 {
-    modelTab->clearNodeInfo();
-    for (auto& node : modelPtr->getNodes())
-        modelTab->addNodeInfo(node.get());
-    for(auto& pointLight : renderer->getPointLights())
-        modelTab->addNodeInfo(pointLight.get());
+	modelTab->clearNodeInfo();
+	for (auto& node : modelPtr->getNodes())
+		modelTab->addNodeInfo(node.get());
+	for (auto& pointLight : renderer->getPointLights())
+		modelTab->addNodeInfo(pointLight.get());
 
 
-    modelTab->modelsChanged();
-modelTab->updateNodeToEdit();
 
-   // lightStorage->clearNodeInfo();
-   // lightStorage->addLightInfo(renderer->getPointLight());
+	//nodeInfo->setSelected(true);
+	modelTab->updateNodeToEdit();
+	emit modelTab->modelsChanged();
+	// lightStorage->clearNodeInfo();
+	// lightStorage->addLightInfo(renderer->getPointLight());
+}
+void View::addPointLight()
+{
+	std::unique_ptr<PointLight> pointLight = std::make_unique<PointLight>();
+	pointLight->ambient() = glm::vec3(0.2, 0.2, 0.2);
+	pointLight->diffuse() = glm::vec3(0.5f, 0.5f, 0.5f);
+	pointLight->specular() = glm::vec3(1.0, 1.0, 1.0);
+
+	pointLight->setAmbientEnabled(true);
+	pointLight->setDiffuseEnabled(true);
+	pointLight->setSpecularEnabled(true);
+
+	pointLight->setPos({ 4,0,0 });
+	std::string name = "Point Light " + std::to_string(renderer->pointLights.size());
+
+
+	pointLight->setName(name);
+	renderer->pointLights.emplace_back(std::move(pointLight));
+
+	renderer->octreePtr->addNode(renderer->pointLights.back().get());
+	//std::vector<Node*> nodeList = BboxHelper::getNodeList(modelPtr->getNodes().back().get());
+   // for (const auto& node : nodeList)
+	 //  renderer->octreePtr->addNode(node);
+
+ //SelectionBuffer::get().clear();
+	addNodeInfo();
+	NodeInfo* nodeInfo = modelTab->getNodeInfo(renderer->pointLights.back().get());
+	nodeInfo->setSelected(true);
+	controllerDispatcher.processKeyboardInput(*this, KeyCode::T, Action::Press, Modifier::NoModifier);
+	//SelectionBuffer::get().select(nodeInfo);
+}
+
+void View::removePointLight(int index)
+{
+	if (index < renderer->pointLights.size()) {
+		renderer->octreePtr->removeNode(renderer->pointLights[index].get());
+		renderer->pointLights.erase(renderer->pointLights.begin() + index);
+	}
+	addNodeInfo();
+}
+
+void View::removeModel(int index)
+{
+	if (index < modelTab->getModels().size())
+	{
+		NodeInfo* nodeInfo = modelTab->getModels()[index];
+		Node* node = nodeInfo->getNode();
+		std::vector<Node*> nodes = BboxHelper::getNodeList(node);
+		for (auto node : nodes) {
+			renderer->octreePtr->removeNode(node);
+		}
+		modelPtr->detachNode(node);
+	}
+	addNodeInfo();
+}
+
+void View::runTransformOperator(Node* node)
+{
+	NodeInfo* nodeInfo = modelTab->getNodeInfo(node);
+	nodeInfo->setSelected(true);
+	controllerDispatcher.processKeyboardInput(*this, KeyCode::T, Action::Press, Modifier::NoModifier);
+}
+
+void View::mouseTracking(MouseState state, double x, double y)
+{
+	if (isMouseTrackingEnabled && state != MouseState::Drag)
+	{
+		std::vector<Contact> contacts = raycast(x, y, FilterValue::Node);
+
+		if (!contacts.empty())
+		{
+			Contact contact = contacts.front();
+			NodeInfo* nodeInfo = modelTab->getNodeInfo(contact.node);
+			nodeInfo->setSelected(true);
+		}
+		else
+		{
+			SelectionBuffer::get().clear();
+		}
+	}
 }

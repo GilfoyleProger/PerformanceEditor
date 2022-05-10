@@ -38,6 +38,18 @@ public:
 
 	bbox getLocalBbox();
 	bbox getWorldBbox();
+
+	Node* getRoot() 
+	{
+		if (parentPtr) 
+		{
+			return parentPtr->getRoot();
+		}
+		else 
+		{
+			return this;
+		}
+	}
 private:
 	Node* parentPtr;
 	std::vector<std::unique_ptr<Node>> childrens;

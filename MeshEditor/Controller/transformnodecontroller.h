@@ -6,10 +6,15 @@
 #include "Triad.h"
 //#include "View/view.h"
 #include <map>
+//#include <QObject>
 class View;
-class TransformNodeOperator : public Controller
+class TransformNodeOperator : public Controller//, public QObject
 {
+    //Q_OBJECT
+//public:
+    //   explicit TransformNodeOperator() {}
 private:
+   // 
     void onEnter(View& view) override;
     void onExit(View& view) override;
 
@@ -30,5 +35,14 @@ private:
     void calcTranslationMat();
 
     glm::mat4 prevDelta = glm::mat4(1.0f);
+
+    View* mview=nullptr;
+    bool isActive = false;
+//public slots:
+    void activateManipulator();
+// slots:
+ //signals:
+//public:
+    //void activateManipulator();
 };
 

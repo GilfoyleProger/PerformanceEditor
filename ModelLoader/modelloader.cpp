@@ -16,7 +16,7 @@ std::unique_ptr<Node> ModelLoader::loadModel(std::string const& path)
 		return nullptr;
 
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);//| aiProcess_FlipUVs
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);//| aiProcess_FlipUVs    | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
@@ -30,6 +30,67 @@ std::unique_ptr<Node> ModelLoader::loadModel(std::string const& path)
 	std::unique_ptr<Node> rootNode = std::make_unique<Node>();
 	processNode(scene->mRootNode, scene, rootNode.get(), fileType);
 
+
+	//Assimp::Exporter exporter;
+
+	//aiScene* aiscene;
+
+		//exporter.Export(scene, "obj", "C:\\Users\\Stepan\\Desktop\\babum.obj");
+	//Model* model = new Model();
+	//model->attachNode(std::move(rootNode));
+	//std::unique_ptr<Node> newNode = saveModel(model, "C:\\Users\\Stepan\\Desktop\\babum.obj");
+	return std::move(rootNode);
+}
+
+std::unique_ptr<Node> ModelLoader::saveModel(Model* modelPtr, std::string path)
+{/*
+	if (!modelPtr || path.empty() || std::filesystem::exists(path))
+		return nullptr;
+*/
+	FileType fileType = getType(path);
+	/*
+	if (!checkFileType(fileType))
+		return nullptr;
+
+	*/
+	Assimp::Exporter exporter;
+
+	aiScene aiscene;
+
+	const int meshCount = getMeshCount(*modelPtr);
+	aiscene.mMeshes = new aiMesh * [meshCount];
+	aiscene.mNumMeshes = 0;
+
+	aiscene.mMaterials = new aiMaterial * [meshCount];
+	aiscene.mNumMaterials = 0;
+
+	aiscene.mRootNode = new aiNode();
+	aiscene.mRootNode->mName = "Scene";
+
+
+	std::string imagePath = path;
+
+	auto const pos = imagePath.find_last_of('/');
+	imagePath = imagePath.substr(0,pos);
+
+	for (auto& node : modelPtr->getNodes())
+	{
+		saveNode(aiscene.mRootNode, node->getChildren(), &aiscene, imagePath);
+	}
+
+	if (aiscene.mNumMeshes > 0)
+	{
+		exporter.Export(&aiscene, getExtensionStr(path).c_str(), path.c_str());
+	}
+
+	std::unique_ptr<Node> rootNode = std::make_unique<Node>();
+	processNode(aiscene.mRootNode, &aiscene, rootNode.get(), fileType);
+	for (int i = 0; i < 2; i++)
+	{
+		auto df = aiscene.mRootNode->mChildren[i];
+		int k = 0;
+	}
+	int k = 0;
 	return std::move(rootNode);
 }
 
@@ -37,6 +98,7 @@ void ModelLoader::processNode(aiNode* node, const aiScene* scene, Node* meshNode
 {
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
+		//int d = node->mMeshes[i];
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshNode->attachMesh(processMesh(mesh, scene, fileType));
 	}
@@ -60,6 +122,8 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 	std::vector<glm::vec2> faceTextureCoords;
 	std::vector<unsigned int> indices;
 
+
+
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
 		vertices.push_back(glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z));
@@ -76,7 +140,7 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 		}
 		else
 		{
-			textureCoords = glm::vec2(0.0f, 0.0f);
+			textureCoords = glm::vec2(0.0f, 0.0f); //TO delete
 		}
 	}
 
@@ -126,7 +190,7 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 	aiColor3D ambient(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, ambient))
 	{
-		meshPtr->getMaterial().ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
+		meshPtr->getMaterial().ambient = glm::vec3(ambient.r, ambient.g, ambient.b); //glm::vec3(0.5f, 0.5f, 0.5f);//
 		meshPtr->getMaterial().ambientEnabled = true;
 	}
 
@@ -135,7 +199,7 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 	aiColor3D diffuse(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse))
 	{
-		meshPtr->getMaterial().diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
+		meshPtr->getMaterial().diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);//glm::vec3(0.5f, 0.5f, 0.5f);
 		meshPtr->getMaterial().diffuseEnabled = true;
 	}
 
@@ -144,7 +208,7 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 	aiColor3D specular(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, specular))
 	{
-		meshPtr->getMaterial().specular = glm::vec3(specular.r, specular.g, specular.b);
+		meshPtr->getMaterial().specular = glm::vec3(specular.r, specular.g, specular.b); //glm::vec3(0.5f, 0.5f, 0.5f); //
 		meshPtr->getMaterial().specularEnabled = true;
 	}
 
@@ -172,9 +236,13 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 	}
 
 	std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+	if (!diffuseMaps.empty())
+		meshPtr->getMaterial().diffuseMapEnabled = true;
 	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
 	std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+	if (!specularMaps.empty())
+		meshPtr->getMaterial().specularMapEnabled = true;
 	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
 	std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
@@ -222,7 +290,7 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 		bool skip = false;
 		for (unsigned int j = 0; j < currentLoadedTextures.size(); j++)
 		{
-			if (std::strcmp(currentLoadedTextures[j].fullpath.data(), str.C_Str()) == 0)
+			if (std::strcmp(currentLoadedTextures[j].name.data(), str.C_Str()) == 0)
 			{
 				textures.push_back(currentLoadedTextures[j]);
 				skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
@@ -231,24 +299,35 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 		}
 		if (!skip)
 		{
+
 			// if texture hasn't been loaded already, load it
-			Texture texture = loadTexture(std::string(str.C_Str()), this->currentDirectory);
-			textures.push_back(texture);
-			currentLoadedTextures.push_back(std::move(texture));
+			Texture* texture = loadTexture(std::string(str.C_Str()), this->currentDirectory, getTextureType(type));
+			//if(type == aiTextureType_DIFFUSE)
+		   //     texture.name = "diffuseMap";
+			if (texture) {
+				textures.push_back(*texture);
+				currentLoadedTextures.push_back(*texture);
+			}
 		}
 	}
 	return textures;
 }
 
-Texture ModelLoader::loadTexture(const std::string& name, const std::string& directory)
+Texture* ModelLoader::loadTexture(const std::string& name, const std::string& directory, std::string type)
 {
 	std::string filename = directory + '/' + name;
 	int textureId = renderEngine->loadTexture(filename);
-	Texture& texture = renderEngine->getTexture(textureId);
-	texture.id = textureId;
-	texture.fullpath = filename;
-	texture.name = name;
-	return texture;
+	if (textureId != -1)
+	{
+		Texture& texture = *renderEngine->getTexture(textureId);
+		texture.id = textureId;
+		texture.enabled = true;
+		texture.fullpath = filename;
+		texture.name = name;
+		texture.type = type;
+		return &texture;
+	}
+	return nullptr;
 }
 
 glm::mat4 ModelLoader::toGLM(const aiMatrix4x4& aiMatrix)
@@ -280,6 +359,35 @@ glm::mat4 ModelLoader::toGLM(const aiMatrix4x4& aiMatrix)
 	return glmMatrix;
 }
 
+aiMatrix4x4 ModelLoader::toAi(const glm::mat4& glmMatrix)
+{
+	// Since aiMatrix is row-major order, and glmMatrix is column-major order,
+	// we need to assign the columns of aiMatrix to the rows of glmMatrix
+	aiMatrix4x4 aiMatrix = aiMatrix4x4();
+
+	aiMatrix[0][0] = glmMatrix[0][0];
+	aiMatrix[1][0] = glmMatrix[0][1];
+	aiMatrix[2][0] = glmMatrix[0][2];
+	aiMatrix[3][0] = glmMatrix[0][3];
+
+	aiMatrix[0][1] = glmMatrix[1][0];
+	aiMatrix[1][1] = glmMatrix[1][1];
+	aiMatrix[2][1] = glmMatrix[1][2];
+	aiMatrix[3][1] = glmMatrix[1][3];
+
+	aiMatrix[0][2] = glmMatrix[2][0];
+	aiMatrix[1][2] = glmMatrix[2][1];
+	aiMatrix[2][2] = glmMatrix[2][2];
+	aiMatrix[3][2] = glmMatrix[2][3];
+
+	aiMatrix[0][3] = glmMatrix[3][0];
+	aiMatrix[1][3] = glmMatrix[3][1];
+	aiMatrix[2][3] = glmMatrix[3][2];
+	aiMatrix[3][3] = glmMatrix[3][3];
+
+	return aiMatrix;
+}
+
 FileType ModelLoader::getType(std::string const& path)
 {
 	std::string extension = std::filesystem::path(path).extension().string();
@@ -289,7 +397,7 @@ FileType ModelLoader::getType(std::string const& path)
 
 	if (extension == "stl")
 		return FileType::STL;
-	else if (extension == "collada")
+	else if (extension == "dae")
 		return FileType::COLLADA;
 	else if (extension == "obj")
 		return FileType::OBJ;
@@ -309,4 +417,248 @@ bool ModelLoader::checkFileType(FileType fileType)
 		return true;
 	else
 		return false;
+}
+void ModelLoader::formNodeList(std::vector<Node*>& nodeList, const std::vector<std::unique_ptr<Node>>& nodePtrList)
+{
+	for (const auto& nodePtr : nodePtrList)
+	{
+		if (!nodePtr->getMeshes().empty())
+			nodeList.emplace_back(nodePtr.get());
+		formNodeList(nodeList, nodePtr->getChildren());
+	}
+}
+
+std::vector<Node*> ModelLoader::getNodeList(const Model& model)
+{
+	std::vector<Node*> nodeList;
+	formNodeList(nodeList, model.getNodes());
+	return nodeList;
+}
+
+std::vector<Node*> ModelLoader::getNodeList(Node* node)
+{
+	std::vector<Node*> nodeList;
+	nodeList.push_back(node);
+	formNodeList(nodeList, node->getChildren());
+	return nodeList;
+}
+
+void ModelLoader::saveNode(aiNode* aiParentNode, Node* node, aiScene* scene)
+{
+	aiNode* ainode = new aiNode();
+	ainode->mMeshes = new unsigned int[node->getMeshes().size()];
+
+
+	for (auto& mesh : node->getMeshes())
+	{
+		scene->mMeshes[scene->mNumMeshes] = new aiMesh();
+		ainode->mMeshes[ainode->mNumMeshes] = 0;
+		ainode->mNumMeshes = ainode->mNumMeshes + 1;
+		scene->mNumMeshes = scene->mNumMeshes + 1;
+
+		aiParentNode->addChildren(aiParentNode->mNumChildren, &ainode);
+
+		int k = 0;
+		//auto pMesh = scene.mMeshes[0];/
+	}
+	//aiNode-
+}
+
+void ModelLoader::saveNode(aiNode* aiParentNode, const std::vector<std::unique_ptr<Node>>& nodes, aiScene* scene,std::string path)
+{
+	for (const auto& node : nodes)
+	{
+		aiNode* ainode = new aiNode();
+		ainode->mName = node->getName().c_str();
+		ainode->mMeshes = new unsigned int[node->getMeshes().size()];
+		ainode->mTransformation = toAi(node->getRelativeTransform());
+
+		for (auto& mesh : node->getMeshes())
+		{
+			scene->mMaterials[scene->mNumMaterials] = new aiMaterial();
+			scene->mNumMaterials = scene->mNumMaterials + 1;
+
+			scene->mMeshes[scene->mNumMeshes] = new aiMesh();
+			scene->mMeshes[scene->mNumMeshes]->mMaterialIndex = scene->mNumMaterials - 1;
+			scene->mNumMeshes = scene->mNumMeshes + 1;
+
+			ainode->mMeshes[ainode->mNumMeshes] = scene->mNumMeshes - 1;
+			ainode->mNumMeshes = ainode->mNumMeshes + 1;
+
+			auto pMesh = scene->mMeshes[scene->mNumMeshes - 1];
+			pMesh->mName = mesh->getMeshName().c_str();
+			const auto& halfEdgeTable = mesh->getHalfEdgeTable();
+			const auto& faces = halfEdgeTable.getFaces();
+			std::vector<glm::vec3> vertices;
+			std::vector<glm::vec3> normals;
+			std::vector<glm::vec2> textureCoords;
+			for (int i = 0; i < faces.size(); i++)
+			{
+				std::vector<glm::vec3> faceVertices;
+				std::vector<glm::vec3> faceNormals;
+				std::vector<glm::vec2> faceTextureCoords;
+				getFaceVertices(halfEdgeTable, halfEdgeTable.handle(faces[i]), faceVertices, faceNormals, faceTextureCoords);
+
+				vertices.insert(vertices.end(), faceVertices.begin(), faceVertices.end());
+				normals.insert(normals.end(), faceNormals.begin(), faceNormals.end());
+				textureCoords.insert(textureCoords.end(), faceTextureCoords.begin(), faceTextureCoords.end());
+			}
+
+			const int verticesCount = vertices.size();
+			pMesh->mVertices = new aiVector3D[verticesCount];
+			pMesh->mNormals = new aiVector3D[verticesCount];
+			pMesh->mNumVertices = verticesCount;
+
+			const int textureCoordsCount = textureCoords.size();
+			pMesh->mTextureCoords[0] = new aiVector3D[textureCoordsCount];
+			pMesh->mNumUVComponents[0] = textureCoordsCount;
+
+			for (int i = 0; i < vertices.size(); i++)
+			{
+				pMesh->mVertices[i] = aiVector3D(vertices[i].x, vertices[i].y, vertices[i].z);
+				pMesh->mNormals[i] = aiVector3D(normals[i].x, normals[i].y, normals[i].z);
+				//if (!textureCoords.empty())
+				//	pMesh->mTextureCoords[0][i] = aiVector3D(textureCoords[i].x, textureCoords[i].y, 0);
+			}
+			for (int i = 0; i < textureCoords.size(); i++)
+			{
+
+				//if (!textureCoords.empty())
+				pMesh->mTextureCoords[0][i] = aiVector3D(textureCoords[i].x, textureCoords[i].y, 0);
+			}
+
+			pMesh->mFaces = new aiFace[vertices.size() / 3];
+			pMesh->mNumFaces = (unsigned int)(vertices.size() / 3);
+
+			int k = 0;
+			for (int i = 0; i < (vertices.size() / 3); i++)
+			{
+				aiFace& face = pMesh->mFaces[i];
+				face.mIndices = new unsigned int[3];
+				face.mNumIndices = 3;
+
+				face.mIndices[0] = k;
+				face.mIndices[1] = k + 1;
+				face.mIndices[2] = k + 2;
+				k = k + 3;
+			}
+			int w = 0;
+
+			auto pMaterial = scene->mMaterials[scene->mNumMaterials - 1];
+
+
+			aiColor3D ambientColor = aiColor3D(mesh->getMaterial().ambient.x, mesh->getMaterial().ambient.y, mesh->getMaterial().ambient.z);
+			aiColor3D diffuseColor = aiColor3D(mesh->getMaterial().diffuse.x, mesh->getMaterial().diffuse.y, mesh->getMaterial().diffuse.z);
+			aiColor3D specularColor = aiColor3D(mesh->getMaterial().specular.x, mesh->getMaterial().specular.y, mesh->getMaterial().specular.z);
+			aiColor3D emissiveColor = aiColor3D(mesh->getMaterial().emission.x, mesh->getMaterial().emission.y, mesh->getMaterial().emission.z);
+			float shininess = mesh->getMaterial().shininess;
+
+			pMaterial->AddProperty(&ambientColor, 1, AI_MATKEY_COLOR_AMBIENT);
+			pMaterial->AddProperty(&diffuseColor, 1, AI_MATKEY_COLOR_DIFFUSE);
+			pMaterial->AddProperty(&specularColor, 1, AI_MATKEY_COLOR_SPECULAR);
+			pMaterial->AddProperty(&emissiveColor, 1, AI_MATKEY_COLOR_EMISSIVE);
+			pMaterial->AddProperty(&shininess, 1, AI_MATKEY_SHININESS);
+
+			aiString ainame = aiString(mesh->getMaterial().name.c_str());
+			pMaterial->AddProperty(&ainame, AI_MATKEY_NAME);
+			
+			if (mesh->getDiffuseMap()) {
+				aiString texName = aiString(mesh->getDiffuseMap()->name.c_str());
+
+				pMaterial->AddProperty(&texName, AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0));
+				std::string pathImage = path + "/" + mesh->getDiffuseMap()->name;
+				mesh->getDiffuseMap()->image.save(QString::fromStdString(pathImage));
+			}
+
+			if (mesh->getSpecularMap()) {
+				aiString texName = aiString(mesh->getSpecularMap()->name.c_str());
+
+				pMaterial->AddProperty(&texName, AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0));
+				std::string pathImage = path + "/" + mesh->getSpecularMap()->name;
+				mesh->getSpecularMap()->image.save(QString::fromStdString(pathImage));
+			}
+
+			if (mesh->getNormalMap()) {
+				aiString texName = aiString(mesh->getNormalMap()->name.c_str());
+
+				pMaterial->AddProperty(&texName, AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0));
+				std::string pathImage = path + "/" + mesh->getNormalMap()->name;
+				mesh->getNormalMap()->image.save(QString::fromStdString(pathImage));
+			}
+		}
+
+
+		aiParentNode->addChildren(1, &ainode);
+		if (!node->getChildren().empty())
+			saveNode(ainode, node->getChildren(), scene,path);
+	}
+}
+
+void ModelLoader::getFaceVertices(const HalfEdge::HalfEdgeTable& halfEdgeTable, const HalfEdge::FaceHandle& fh,
+	std::vector<glm::vec3>& vertices, std::vector<glm::vec3>& normals, std::vector<glm::vec2>& textureCoords)
+{
+	std::vector<glm::vec3> tempVertices;
+
+	HalfEdge::HalfEdgeHandle heh = halfEdgeTable.deref(fh).heh;
+	HalfEdge::HalfEdgeHandle nextHeh = heh;
+	HalfEdge::HalfEdgeHandle startHeh;
+	while (nextHeh.index != startHeh.index)
+	{
+		auto& twin = halfEdgeTable.deref(nextHeh).twin;
+		tempVertices.push_back(halfEdgeTable.getPoint(halfEdgeTable.deref(twin).dst));
+
+		nextHeh = halfEdgeTable.next((nextHeh));
+
+		if (startHeh.index == -1)
+			startHeh = heh;
+	}
+
+	// Save first triangle
+	vertices = { tempVertices[0], tempVertices[1], tempVertices[2] };
+	normals = { halfEdgeTable.deref(fh).normal, halfEdgeTable.deref(fh).normal, halfEdgeTable.deref(fh).normal };
+	if (!halfEdgeTable.deref(fh).textureCoords.empty())
+	{
+		textureCoords = { halfEdgeTable.deref(fh).textureCoords[0], halfEdgeTable.deref(fh).textureCoords[1], halfEdgeTable.deref(fh).textureCoords[2] };
+	}
+	else
+	{
+		//textureCoords.push_back(glm::vec2(0, 0));
+		//textureCoords.push_back(glm::vec2(0, 0));
+		//textureCoords.push_back(glm::vec2(0, 0));
+	}
+	if (tempVertices.size() == 4)
+	{
+		// Then it is quad face and we need to save second triangle
+		vertices.push_back(tempVertices[2]);
+		vertices.push_back(tempVertices[3]);
+		vertices.push_back(tempVertices[0]);
+
+		normals.push_back(halfEdgeTable.deref(fh).normal);
+		normals.push_back(halfEdgeTable.deref(fh).normal);
+		normals.push_back(halfEdgeTable.deref(fh).normal);
+
+		if (!halfEdgeTable.deref(fh).textureCoords.empty())
+		{
+			textureCoords.push_back(halfEdgeTable.deref(fh).textureCoords[2]);
+			textureCoords.push_back(halfEdgeTable.deref(fh).textureCoords[3]);
+			textureCoords.push_back(halfEdgeTable.deref(fh).textureCoords[0]);
+		}
+		else
+		{
+			//textureCoords.push_back(glm::vec2(0, 0));
+			//textureCoords.push_back(glm::vec2(0, 0));
+			//textureCoords.push_back(glm::vec2(0, 0));
+		}
+	}
+}
+
+int ModelLoader::getMeshCount(const Model& model)
+{
+	std::vector<Node*> nodes = getNodeList(model);
+	int meshCount = 0;
+	for (auto node : nodes)
+	{
+		meshCount += node->getMeshes().size();
+	}
+	return meshCount;
 }

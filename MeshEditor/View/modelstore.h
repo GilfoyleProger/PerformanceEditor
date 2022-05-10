@@ -6,6 +6,8 @@
 #include <QVector3D>
 #include "Controller/pointlight.h"
 
+class ModelTab;
+
 class MaterialInfo : public QObject
 {
 	Q_OBJECT
@@ -20,6 +22,14 @@ class MaterialInfo : public QObject
 		Q_PROPERTY(bool diffuseEnabled READ diffuseEnabled WRITE setDiffuseEnabled NOTIFY materialChanged)
 		Q_PROPERTY(bool specularEnabled READ specularEnabled WRITE setSpecularEnabled NOTIFY materialChanged)
 		Q_PROPERTY(bool emissionEnabled READ emissionEnabled WRITE setEmissionEnabled NOTIFY materialChanged)
+
+    Q_PROPERTY(bool diffuseMapEnabled READ diffuseMapEnabled WRITE setDiffuseMapEnabled NOTIFY materialChanged)
+    Q_PROPERTY(bool specularMapEnabled READ specularMapEnabled WRITE setSpecularMapEnabled NOTIFY materialChanged)
+	Q_PROPERTY(bool normalMapEnabled READ normalMapEnabled WRITE setNormalMapEnabled NOTIFY materialChanged)
+
+    Q_PROPERTY(QString diffuseMapName READ diffuseMapName CONSTANT)
+		Q_PROPERTY(QString specularMapName READ specularMapName CONSTANT)
+		Q_PROPERTY(QString normalMapName READ normalMapName CONSTANT)
 
 public:
 	explicit MaterialInfo(Mesh* mesh)
@@ -56,6 +66,66 @@ public:
 	bool emissionEnabled();
 	void setEmissionEnabled(bool state);
 
+    bool diffuseMapEnabled()
+    {
+        return meshPtr->getMaterial().diffuseMapEnabled;
+    }
+    void setDiffuseMapEnabled(bool state)
+    {
+        if (state == diffuseMapEnabled())
+            return;
+        meshPtr->getMaterial().diffuseMapEnabled = state;
+        emit materialChanged();
+    }
+
+    QString diffuseMapName()
+    {
+		if (meshPtr->getDiffuseMap()) 
+		{
+			return QString::fromStdString(meshPtr->getDiffuseMap()->name);
+		}
+        return "none";
+    }
+
+    bool specularMapEnabled()
+    {
+        return meshPtr->getMaterial().specularMapEnabled;
+    }
+    void setSpecularMapEnabled(bool state)
+    {
+        if (state == specularMapEnabled())
+            return;
+        meshPtr->getMaterial().specularMapEnabled = state;
+        emit materialChanged();
+    }
+    QString specularMapName()
+    {
+        if (meshPtr->getSpecularMap())
+        {
+            return QString::fromStdString(meshPtr->getSpecularMap()->name);
+        }
+        return "none";
+    }
+
+	bool normalMapEnabled()
+	{
+		return meshPtr->getMaterial().normalMapEnabled;
+	}
+	void setNormalMapEnabled(bool state)
+	{
+		if (state == normalMapEnabled())
+			return;
+		meshPtr->getMaterial().normalMapEnabled = state;
+		emit materialChanged();
+	}
+	QString normalMapName()
+	{
+		if (meshPtr->getNormalMap())
+		{
+			return QString::fromStdString(meshPtr->getNormalMap()->name);
+		}
+		return "none";
+	}
 signals:
 	void materialChanged();
 
@@ -118,17 +188,25 @@ class NodeInfo : public QObject
 	Q_OBJECT
 		Q_PROPERTY(QString name READ name CONSTANT)
 		Q_PROPERTY(bool selected READ selected WRITE setSelected NOTIFY selectedChanged)
+		Q_PROPERTY(bool recursivelySelected READ recursivelySelected WRITE setRecursivelySelected NOTIFY selectedChanged)
 
 public:
-	explicit NodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo);
+	explicit NodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo, ModelTab* modelTab);
 
 	QString name();
+
+	bool recursivelySelected();
+	void setRecursivelySelected(bool state);
 
 	bool selected();
 	void setSelected(bool state);
 
 	std::vector<NodeInfo*> getChildren();
-
+	Node* getNode()
+	{
+		return nodePtr;
+	}
+	
 signals:
 	void selectedChanged();
 
@@ -136,6 +214,7 @@ protected:
 	Node* nodePtr = nullptr;
 	std::map<Node*, NodeInfo*>* nodesInfo;
 	bool isSelected = false;
+	ModelTab* modelTab;
 };
 
 class ModelNodeInfo : public NodeInfo
@@ -144,7 +223,7 @@ class ModelNodeInfo : public NodeInfo
 		Q_PROPERTY(QList<QObject*> materials READ materials NOTIFY materialsChanged)
 
 public:
-	ModelNodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo) : NodeInfo(inNodePtr, inNodesInfo)
+	ModelNodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo,ModelTab* modelTab) : NodeInfo(inNodePtr, inNodesInfo, modelTab)
 	{
 		for (auto& mesh : inNodePtr->getMeshes())
 		{
@@ -177,7 +256,7 @@ class PointLightNodeInfo : public NodeInfo
 		Q_PROPERTY(QObject* params READ params NOTIFY paramsChanged)
 
 public:
-	PointLightNodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo) : NodeInfo(inNodePtr, inNodesInfo)
+	PointLightNodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo,ModelTab*modelTab) : NodeInfo(inNodePtr, inNodesInfo, modelTab)
 	{
 
 		_lightParams = new PointLightParamsInfo(dynamic_cast<PointLight*>(inNodePtr));
@@ -202,12 +281,39 @@ class ModelTab : public QObject
 	Q_OBJECT
 		Q_PROPERTY(QList<QObject*> nodes READ nodes NOTIFY modelsChanged)
 		Q_PROPERTY(QList<QObject*> models READ models NOTIFY modelsChanged)
-    Q_PROPERTY(QList<QObject*> lights READ models NOTIFY modelsChanged)
+    Q_PROPERTY(QList<QObject*> lights READ lights NOTIFY modelsChanged)
 		Q_PROPERTY(QObject* currentNode READ currentNode NOTIFY currentNodeChanged)
 		Q_PROPERTY(QObject* currentLight READ currentLight NOTIFY currentLightChanged)
+Q_PROPERTY(QObject* currentLight READ currentLight NOTIFY currentLightChanged)
+    Q_PROPERTY(bool lightingEnabled READ lightingEnabled WRITE setLightingEnabled NOTIFY lightingChanged)
+    Q_PROPERTY(QVector3D backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY backgroundChanged)
 
 public:
 	explicit ModelTab();
+
+    void setBackgroundColor(QVector3D newColor)
+    {
+        if(newColor==_backgroundColor)
+            return;
+        _backgroundColor=newColor;
+    }
+    QVector3D backgroundColor()
+    {
+        return _backgroundColor;
+    }
+
+    void setLightingEnabled(bool state)
+    {
+        if(state==_lightingEnabled)
+            return;
+        _lightingEnabled = state;
+        emit lightingChanged();
+    }
+
+    bool lightingEnabled()
+    {
+        return _lightingEnabled;
+    }
 
 	QObject* currentNode()
 	{
@@ -233,7 +339,7 @@ public:
 
 		for (auto& node : nodesInfo)
 		{
-			if (dynamic_cast<ModelNodeInfo*>(node.second))
+			if (dynamic_cast<ModelNodeInfo*>(node.second) && !node.first->getParent())
 			{
 				result.push_back(node.second);
 			}
@@ -260,10 +366,16 @@ public:
         QList<QObject*> result;
 
         for (auto& node : nodesInfo)
-        {
+        {/*
+            if (dynamic_cast<PointLight*>(node.first) && !dynamic_cast<Node*>(node.first))
+            {
+                result.push_back(node.second);
+            }*/
+            
             if (dynamic_cast<PointLightNodeInfo*>(node.second))
             {
                 result.push_back(node.second);
+				emit node.second->selectedChanged();
             }
         }
         return result;
@@ -284,23 +396,23 @@ public:
 	{
 		if (node)
 		{
-			if (!node->getMeshes().empty())
-			{
+			//if (!node->getMeshes().empty())
+			//{
 				if (dynamic_cast<Node*>(node) && !dynamic_cast<PointLight*>(node))
 				{
-					ModelNodeInfo* nodeInfo = new ModelNodeInfo(node, &nodesInfo);
+					ModelNodeInfo* nodeInfo = new ModelNodeInfo(node, &nodesInfo, this);
 					nodesInfo.emplace(node, nodeInfo);
 					nodeToEdit = nodeInfo;
 					emit currentNodeChanged();
 				}
 				else if (dynamic_cast<PointLight*>(node))
 				{
-					PointLightNodeInfo* lightInfo = new PointLightNodeInfo(node, &lightsInfo);
+                    PointLightNodeInfo* lightInfo = new PointLightNodeInfo(node, &nodesInfo, this);
 					nodesInfo.emplace(node, lightInfo);
 					lightToEdit = lightInfo;
 					emit currentLightChanged();
 				}
-			}
+			//}
 			if (!node->getChildren().empty())
 				addNodeInfo(node->getChildren());
 		}
@@ -311,23 +423,23 @@ public:
 		{
 			if (node)
 			{
-				if (!node->getMeshes().empty())
-				{
+				//if (!node->getMeshes().empty())
+				//{
 					if (dynamic_cast<Node*>(node.get()) && !dynamic_cast<PointLight*>(node.get()))
 					{
-						ModelNodeInfo* nodeInfo = new ModelNodeInfo(node.get(), &nodesInfo);
+						ModelNodeInfo* nodeInfo = new ModelNodeInfo(node.get(), &nodesInfo, this);
 						nodesInfo.emplace(node.get(), nodeInfo);
 						nodeToEdit = nodeInfo;
 						emit currentNodeChanged();
 					}
 					else if (dynamic_cast<PointLight*>(node.get()))
 					{
-						PointLightNodeInfo* lightInfo = new PointLightNodeInfo(node.get(), &lightsInfo);
+                        PointLightNodeInfo* lightInfo = new PointLightNodeInfo(node.get(), &nodesInfo, this);
 						nodesInfo.emplace(node.get(), lightInfo);
 						lightToEdit = lightInfo;
 						emit currentLightChanged();
 					}
-				}
+				//}
 				addNodeInfo(node->getChildren());
 			}
 		}
@@ -351,15 +463,43 @@ public:
 		return modelPtr;
 	}
 
+	Node* getLastSelected() 
+	{
+		return lastSelected;
+	}
+	void setLastSelected(Node*node)
+	{
+		lastSelected = node;
+	}
+
+	std::vector<NodeInfo*>getModels() 
+	{
+		std::vector<NodeInfo*> result;
+
+		for (auto& node : nodesInfo)
+		{
+			if (dynamic_cast<ModelNodeInfo*>(node.second) && !node.first->getParent())
+			{
+				result.push_back(node.second);
+			}
+		}
+		return result;
+	}
+
 signals:
 	void modelsChanged();
 	void currentNodeChanged();
 	void currentLightChanged();
-
+    void lightingChanged();
+    void backgroundChanged();
 private:
 	std::map<Node*, NodeInfo*> lightsInfo;
 	std::map<Node*, NodeInfo*> nodesInfo;
 	NodeInfo* lightToEdit = nullptr;
 	NodeInfo* nodeToEdit = nullptr;
 	Model* modelPtr = nullptr;
+    bool _lightingEnabled = true;
+    QVector3D _backgroundColor={0,0,0};
+
+	Node* lastSelected=nullptr;
 };

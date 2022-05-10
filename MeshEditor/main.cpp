@@ -31,8 +31,8 @@ int main(int argc, char** argv)
     //view.rootContext()->setContextProperty("ModelTab", modelTab);
 	view.setResizeMode(QQuickView::SizeRootObjectToView);
 	view.setSource(QUrl("qrc:///qml/main.qml"));
-	view.setTitle("ViaFactorem");
-	app.setWindowIcon(QIcon("C:/Users/Stepan/Documents/Thesis/ViaFactorem/ViaFactoremGui/Images/wavy-road.png"));
+    view.setTitle("PerformanceEditor");
+    app.setWindowIcon(QIcon("C:/Users/Stepan/Documents/workplace/PerformanceEditor/MeshEditor/icons/magic-wand.png"));
 	view.resize(1366, 768);
 	view.show();
 

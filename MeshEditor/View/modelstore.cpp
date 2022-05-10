@@ -232,23 +232,24 @@ void PointLightParamsInfo::setSpecularEnabled(bool state)
 
 bool PointLightParamsInfo::visible()
 {
-    return lightPtr->visible();
+	return lightPtr->visible();
 }
 
 void PointLightParamsInfo::setVisible(bool state)
 {
-    if (state == visible())
-        return;
-    lightPtr->setVisible(state);
-    emit paramsChanged();
+	if (state == visible())
+		return;
+	lightPtr->setVisible(state);
+	emit paramsChanged();
 }
 
 
 
-NodeInfo::NodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo)
+NodeInfo::NodeInfo(Node* inNodePtr, std::map<Node*, NodeInfo*>* inNodesInfo, ModelTab* _modelTab)
 {
 	nodePtr = inNodePtr;
 	nodesInfo = inNodesInfo;
+	modelTab = _modelTab;
 }
 
 QString NodeInfo::name()
@@ -258,15 +259,76 @@ QString NodeInfo::name()
 
 bool NodeInfo::selected()
 {
-	return isSelected;
+	//if (!nodePtr->getParent() && nodePtr->getMeshes().empty())
+	//	return SelectionBuffer::get().isOneChildSelected(this);
+	//else
+	return  SelectionBuffer::get().isSelected(this);
 }
 
 void NodeInfo::setSelected(bool state)
 {
-	if (state == isSelected)
-		isSelected = state;
-	emit selectedChanged();
+	if (state == SelectionBuffer::get().isSelected(this))
+		return;
+
+	if (state)
+	{
+		modelTab->setLastSelected(nodePtr);
+		SelectionBuffer::get().clear();
+		SelectionBuffer::get().select(this);
+
+	}
+	else
+	{
+		//if (modelTab->getLastSelected() == nodePtr)
+		//	modelTab->setLastSelected(nullptr);
+		SelectionBuffer::get().deselect(this);
+
+	}
+	Node* root = nodePtr->getRoot();
+	if (root) {
+		if (root->getMeshes().empty()) {
+			emit modelTab->getNodeInfo(root)->selectedChanged();
+			//emit modelTab->getNodeInfo(root)->selectedChanged();
+			//SelectionBuffer::get().select(modelTab->getNodeInfo(root));
+			//modelTab->getNodeInfo(root)selectedChanged
+			//	emit root->();
+		}
+	}
+	//isSelected = state;
+//emit selectedChanged();
 }
+
+
+bool NodeInfo::recursivelySelected()
+{
+	return  SelectionBuffer::get().isOneChildSelected(this);
+}
+
+void NodeInfo::setRecursivelySelected(bool state)
+{
+	if (state == SelectionBuffer::get().isSelected(this))
+		return;
+
+	if (state)
+	{
+		modelTab->setLastSelected(nodePtr);
+		SelectionBuffer::get().clear();
+		SelectionBuffer::get().select(this, true);
+	}
+	else
+	{
+		//	if (modelTab->getLastSelected() == nodePtr)
+		//		modelTab->setLastSelected(nullptr);
+		SelectionBuffer::get().deselect(this, true);
+	}
+}
+
+
+
+
+
+
+
 
 std::vector<NodeInfo*> NodeInfo::getChildren()
 {
@@ -283,6 +345,7 @@ std::vector<NodeInfo*> NodeInfo::getChildren()
 ModelTab::ModelTab()
 {
 	connect(&SelectionBuffer::get(), &SelectionBuffer::selectionBufferChanged, this, &ModelTab::updateNodeToEdit);
+	//emit backgroundChanged();
 }
 
 void ModelTab::updateNodeToEdit()
@@ -293,10 +356,26 @@ void ModelTab::updateNodeToEdit()
 		{
 			if (dynamic_cast<ModelNodeInfo*>(item))
 			{
-				nodeToEdit = item;
+				if (item->getNode()->getMeshes().empty() && !item->getNode()->getParent())
+				{
+					for (auto& node : item->getNode()->getChildren()) 
+					{
+						if (!node->getMeshes().empty()) 
+						{
+							nodeToEdit = getNodeInfo(node.get());
+							break;
+						}
+					}
+					//nodeToEdit = getNodeInfo(item->getNode()->getChildren().front().get());
+				}
+				else
+				{
+					nodeToEdit = item;
+				}
 				break;
 			}
 		}
+
 		for (auto item : SelectionBuffer::get().getItems())
 		{
 			if (dynamic_cast<PointLightNodeInfo*>(item))
@@ -305,25 +384,41 @@ void ModelTab::updateNodeToEdit()
 				break;
 			}
 		}
-		//nodeToEdit = SelectionBuffer::get().getItems().front();
-	   // emit nodeToEdit-> selectedChanged();
-	}
-	else
-	{
-		/*
-		if(!modelPtr->getNodes().empty())
-		{
-			nodeToEdit = getNodeInfo(modelPtr->getNodes().back().get());
-			//emit nodeToEdit-> selectedChanged();
-		}*/
 	}
 
-	//emit nodeToEdit->selectedChanged();
- //emit nodeToEdit->materialsChanged();
+	Node* prevRootNode = nullptr;
+	for (auto& nodeToInfo : nodesInfo)
+	{
+		Node* rootNode = nodeToInfo.first->getRoot();
+
+		if (rootNode->getMeshes().empty())
+		{
+			if (rootNode != prevRootNode)
+			{
+				prevRootNode = rootNode;
+				NodeInfo* rootNodeInfo = getNodeInfo(rootNode);
+				emit rootNodeInfo->selectedChanged();
+			}
+		}
+	}
+	int modelCount = 0;
+	for (auto& node : nodesInfo)
+	{
+		if (dynamic_cast<ModelNodeInfo*>(node.second))
+		{
+			++modelCount;
+		}
+	}
+	if (modelCount == 0) 
+	{
+		nodeToEdit = nullptr;
+	}
+
 	emit currentNodeChanged();
 	emit currentLightChanged();
-	//emit nodeToEdit-> selectedChanged();
+	emit modelsChanged();
 }
+
 /*
 bool NodeInfo::selected()
 {

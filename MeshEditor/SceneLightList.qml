@@ -13,34 +13,36 @@ import QtQuick.Dialogs 1.3
 
 Rectangle
 {
-    id:root
+    id: root
     color: "white"
     height: layout.height
-    width: 100
+    width: 110
     border.width: 1
     border.color: "black"
 
     property int maxHeight: 300
 
     ColumnLayout {
-        id:layout
+        id: layout
         height: showButton.checked ? Math.min(maxHeight, models.contentHeight + showButton.height + layout.spacing) : showButton.height
+
         Button {
-            id:showButton
+            id: showButton
+
+            Layout.alignment: Qt.AlignTop
+            Layout.preferredHeight: 50
+            Layout.preferredWidth: root.width
+
             checkable: true
             checked: enabled
 
-            ToolTip
-            {
-                text:qsTr("Show/Hide Models")
-            }
+            ToolTip.delay: 1000
+            ToolTip.timeout: 5000
+            ToolTip.visible: hovered && !pressed
+            ToolTip.text: qsTr("Show/Hide Lights")
 
-            Layout.alignment: Qt.AlignTop
-            Layout.preferredHeight: 30
-            Layout.preferredWidth: root.width
-            enabled: 0 < models.count
             background: Rectangle {
-                color: showButton.enabled? "white":"#0000000"
+                color: showButton.enabled ? "white" : "#0000000"
                 border.width: 1
                 border.color: showButton.enabled ? "black" : "gray"
             }
@@ -52,18 +54,48 @@ Rectangle
                 opacity: showButton.enabled ? 1 : 0.3
 
                 Text {
-                    id:buttonName
+                    id: buttonName
                     text: qsTr("Lights")
-                    Layout.leftMargin: 6
+                    font.pointSize: 8
+                    Layout.leftMargin: 5
                     color: "black"
                 }
 
-                Image {
-                    id:buttonPointer
-                    source: "/icons/expand-button.png"
-                    rotation: showButton.checked ? 180 : 0
-                    Layout.preferredHeight: 10
-                    Layout.preferredWidth: height
+                ColumnLayout {
+                    Layout.leftMargin: 38
+
+                    Button {
+                        Layout.preferredHeight: 24
+                        Layout.preferredWidth: 24
+                        onClicked: renderSystem.addPointLight()
+                        ToolTip.delay: 1000
+                        ToolTip.timeout: 5000
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Add Point Light")
+
+                        background: Rectangle {
+                            color: showButton.enabled? "white":"#0000000"
+                            border.width: 0
+                            border.color: showButton.enabled ? "black" : "gray"
+                        }
+
+                        RowLayout {
+                            Image {
+                                source: "/icons/add-point-light.png"
+                                Layout.preferredHeight: 24
+                                Layout.preferredWidth: 24
+                            }
+                        }
+                    }
+
+                    Image {
+                        id: buttonPointer
+                        Layout.leftMargin: 10
+                        source: "/icons/expand-button.png"
+                        rotation: showButton.checked ? 180 : 0
+                        Layout.preferredHeight: 10
+                        Layout.preferredWidth: height
+                    }
                 }
             }
         }
@@ -72,33 +104,69 @@ Rectangle
         {
             id: models
             visible: showButton.checked
-            model: ModelTab.lights//["Light0", "Light1"]
-    //    height: 20
+            model: ModelTab.lights
             Layout.maximumHeight: 90
             Layout.fillHeight: true
             Layout.fillWidth: true
             ScrollBar.vertical: ScrollBar{}
+
             delegate: Item {
-                id:modelRow
+                id: modelRow
                 width: root.width
                 height: 30
 
-                Rectangle{
-                id:highlight
-                color:"transparent"
-                border.color: "blue"
-                border.width: 2
-                anchors.fill: parent
-                visible: modelData.selected
-                z:-1
+                RowLayout {
+                    height: 30
+
+                    Button {
+                        Layout.leftMargin: 88
+                        Layout.preferredHeight: 16
+                        Layout.preferredWidth: 16
+                        onClicked: renderSystem.removePointLight(index)
+
+                        ToolTip.delay: 1000
+                        ToolTip.timeout: 5000
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Remove Point Light")
+
+                        background: Rectangle {
+                            color: showButton.enabled? "white" : "#0000000"
+                            border.width: 0
+                            border.color: showButton.enabled ? "black" : "gray"
+                        }
+
+                        RowLayout {
+                            Image { 
+                                source: "/icons/delete.png"
+                                Layout.preferredHeight: 16
+                                Layout.preferredWidth: 16
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: highlight
+                    color:"transparent"
+                    border.color: "blue"
+                    border.width: 2
+                    anchors.fill: parent
+                    visible: modelData.selected
+                    z: -1
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: { modelData.selected = true }
+                    z: -1
                 }
 
                 RowLayout {
-                    width: root.width
+                    width: root.width-4
                     height: 30
                     Text {
                         height: 30
-                        Layout.leftMargin: 10
+                        Layout.leftMargin: 5
                         text:modelData.name
                     }
                 }

@@ -17,10 +17,13 @@ Material& Mesh::getMaterial()
 
 void Mesh::render(GLRenderEngine* re, ShaderProgram* shaderProgram)
 {
-
+renderEngine = re;
 	//Container container = std::move(re->createMesh(positions, indices));
 	if (isGeometryInitialized)
 	{
+        setShaderUniform("material.diffuseMapEnabled", getMaterial().diffuseMapEnabled);
+        setShaderUniform("material.specularMapEnabled", getMaterial().specularMapEnabled);
+        setShaderUniform("material.normalMapEnabled", getMaterial().normalMapEnabled);
 		re->render(container.vao, indices.size(), shaderProgram, DrawType::Arrays, uniformContainer, texturesId);
 		//re->render(re->containers[uuid].vao.get(), indices.size(), shaderProgram, DrawType::Arrays, uniformContainer, textures);
 	}
@@ -113,6 +116,11 @@ void Mesh::setShaderUniform(std::string name, GLfloat value)
 void Mesh::setShaderUniform(std::string name, bool value)
 {
 	uniformContainer.uniformToBool[name] = value;
+}
+
+void Mesh::setShaderUniform(std::string name, GLint value)
+{
+    uniformContainer.uniformToInt[name] = value;
 }
 
 std::vector<std::vector<HalfEdge::Vertex>> Mesh::getFaceTriangles(HalfEdge::FaceHandle fh)
