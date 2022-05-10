@@ -31,22 +31,26 @@ void GLRenderEngine::init()
 }
 
 void GLRenderEngine::render(VAO* vao, int vertexCount, ShaderProgram* shaderProgram, DrawType drawCall,
-						    UniformContainer uniformContainer, std::vector<int> textures)
+	UniformContainer uniformContainer, std::vector<int> textures)
 {
 	shaderProgram->setUniformValue("model", worldMatrix);
 	shaderProgram->setUniformValue("view", viewMatrix);
 	shaderProgram->setUniformValue("projection", projMatrix);
 
-    setUniformsToShader(uniformContainer, shaderProgram);
-
+	setUniformsToShader(uniformContainer, shaderProgram);
+	shaderProgram->setUniformValue("diffuseMapEnabled", false);
 	for (int i = 0; i < textures.size(); i++)
 	{
-		//break;
-		//shaderProgram->setUniformValue("map.diffuse", 0);
-		glFunctions->glActiveTexture(GL_TEXTURE0);
-		texturesStorage[textures[i]].ptr->bind();
-		shaderProgram->setUniformValue("map.diffuse", 0);//textures[i].name.c_str()
-		break;
+		if (texturesStorage[textures[i]].enabled)
+		{
+
+			glFunctions->glActiveTexture(GL_TEXTURE0 + i);
+			texturesStorage[textures[i]].ptr->bind();
+			std::string textureName = "material." + texturesStorage[textures[i]].name;
+			shaderProgram->setUniformValue(textureName.c_str(), texturesStorage[textures[i]].id);//textures[i].name.c_str()
+
+
+		}
 	}
 
 	vao->bind();
@@ -59,13 +63,11 @@ void GLRenderEngine::render(VAO* vao, int vertexCount, ShaderProgram* shaderProg
 		glFunctions->glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
 	}
 	vao->release();
-
+	
 	for (int i = 0; i < textures.size(); i++)
 	{
-		//break;
-		glFunctions->glActiveTexture(GL_TEXTURE0);
+		glFunctions->glActiveTexture(GL_TEXTURE0 + i);
 		texturesStorage[textures[i]].ptr->release();
-		break;
 	}
 }
 
@@ -168,9 +170,24 @@ int GLRenderEngine::loadTexture(std::string path)
 {
 	Texture texture;
 	QImage image(QString::fromStdString(path));
-	texture.ptr = new QOpenGLTexture(image.mirrored());
-	texturesStorage.emplace(texturesStorage.size(), texture);
-	return texturesStorage.size() - 1;
+	if (!image.isNull()) {
+		texture.ptr = new QOpenGLTexture(image.mirrored());
+		texture.image = image;
+		texturesStorage.emplace(texturesStorage.size(), texture);
+		return texturesStorage.size() - 1;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+Texture* GLRenderEngine::getTexture(int id)
+{
+	auto iter = texturesStorage.find(id);
+	if (iter != texturesStorage.end());
+	return &iter->second;
+	return nullptr;
 }
 
 void GLRenderEngine::setUniformsToShader(UniformContainer uniformContainer, ShaderProgram* shaderProgram)
@@ -196,6 +213,11 @@ void GLRenderEngine::setUniformsToShader(UniformContainer uniformContainer, Shad
 	}
 
 	for (const auto& param : uniformContainer.uniformToBool)
+	{
+		shaderProgram->setUniformValue(param.first.c_str(), param.second);
+	}
+
+	for (const auto& param : uniformContainer.uniformToInt)
 	{
 		shaderProgram->setUniformValue(param.first.c_str(), param.second);
 	}

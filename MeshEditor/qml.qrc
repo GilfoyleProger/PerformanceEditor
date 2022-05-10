@@ -5,5 +5,6 @@
         <file>SceneModelList.qml</file>
         <file>SceneLightList.qml</file>
         <file>ModelSettings.qml</file>
+        <file>BackgroundSettings.qml</file>
     </qresource>
 </RCC>

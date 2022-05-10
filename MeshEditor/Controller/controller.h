@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QObject>
+
 enum class Modifier
 {
 	NoModifier = 0,
@@ -76,8 +78,9 @@ enum class KeyCode
 
 class View;
 
-class Controller
+class Controller : public QObject
 {
+	Q_OBJECT
 public:
 	virtual ~Controller() {}
 	virtual void onEnter(View&) {}

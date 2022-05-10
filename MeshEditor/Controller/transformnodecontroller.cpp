@@ -1,4 +1,4 @@
-#include "TransformNodeOperator.h"
+#include "transformnodecontroller.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 #include "glm/gtx/intersect.hpp"
@@ -10,90 +10,104 @@
 
 void TransformNodeOperator::onEnter(View& view)
 {
+	mview = &view;
+	view.isMouseTrackingEnabled = false;
 	currentSate = State::Idle;
+	//SelectionBuffer::get().clear();
+	connect(&SelectionBuffer::get(), &SelectionBuffer::selectionBufferChanged, this, &TransformNodeOperator::activateManipulator,
+		Qt::QueuedConnection);
+	isActive = true;
+	activateManipulator();
 }
 
 void TransformNodeOperator::onExit(View& view)
 {
+	view.isMouseTrackingEnabled = true;
 	if (triadPtr)
 		resetTriad(view);
 
-    SelectionBuffer::get().clear();
-    //NodeInfo* nodeInfo = view.modelTab->getNodeInfo(nodeToEdit);
-    //nodeInfo->selectedChanged();
+	SelectionBuffer::get().clear();
+	isActive = false;
+	//NodeInfo* nodeInfo = view.modelTab->getNodeInfo(nodeToEdit);
+	//nodeInfo->selectedChanged();
 }
 
 void TransformNodeOperator::onMouseMove(View& view, double x, double y)
 {
-	if (currentSate == State::Edit) {
-		//y = view.getViewport().getHeight() - y;
-		currentManipulator->handleMovement(MovementType::Drag, view.getViewport(), x, y);
+	if (isActive) {
+		if (currentSate == State::Edit) {
+			//y = view.getViewport().getHeight() - y;
+			currentManipulator->handleMovement(MovementType::Drag, view.getViewport(), x, y);
+		}
 	}
 }
 
 void TransformNodeOperator::onMouseInput(View& view, ButtonCode button, Action action, Modifier mods, double x, double y)
 {
-	if (currentSate == State::Idle)
-	{
-		if (button == ButtonCode::LeftButton && action == Action::Press)
+	if (isActive) {
+		if (currentSate == State::Idle)
 		{
-			std::vector<Contact> contacts = view.raycast(x, y, FilterValue::NM);
-
-			if (contacts.empty())
+			if (button == ButtonCode::LeftButton && action == Action::Press)
 			{
-				resetTriad(view);
-				SelectionBuffer::get().clear();
-               // NodeInfo* nodeInfo = view.modelTab->getNodeInfo(nodeToEdit);
-               // nodeInfo->selectedChanged();
-				return;
+				std::vector<Contact> contacts = view.raycast(x, y, FilterValue::NM);
+
+				if (contacts.empty())
+				{
+					resetTriad(view);
+					SelectionBuffer::get().clear();
+					// NodeInfo* nodeInfo = view.modelTab->getNodeInfo(nodeToEdit);
+					// nodeInfo->selectedChanged();
+					return;
+				}
+
+				Contact& contact = contacts.front();
+
+				if (dynamic_cast<Manipulator*>(contact.node))
+				{
+					currentSate = State::Edit;
+					currentManipulator = dynamic_cast<Manipulator*>(contact.node);
+				}
+				else
+				{
+					nodeToEdit = contact.node;
+					NodeInfo* nodeInfo = view.modelTab->getNodeInfo(contact.node);
+					nodeInfo->setSelected(true);
+					//SelectionBuffer::get().clear();
+					//SelectionBuffer::get().select(nodeInfo, false);
+				   // nodeInfo->selectedChanged();
+					currentSate = State::Idle;
+
+					initTriad(view);
+
+					triadPtr->setCallback([&node = nodeToEdit, &prev = prevDelta](const glm::mat4& delta)
+						{
+							prev = delta * prev;
+							node->applyRelativeTransform(delta);
+						});
+				}
 			}
+		}
 
-			Contact& contact = contacts.front();
-
-			if (dynamic_cast<Manipulator*>(contact.node))
+		if (currentSate == State::Edit)
+		{
+			if (button == ButtonCode::LeftButton && action == Action::Press)
 			{
-				currentSate = State::Edit;
-				currentManipulator = dynamic_cast<Manipulator*>(contact.node);
+				//y = view.getViewport().getHeight() - y;
+				currentManipulator->handleMovement(MovementType::Push, view.getViewport(), x, y);
 			}
-			else
+			else if (button == ButtonCode::LeftButton && action == Action::Release)
 			{
-				nodeToEdit = contact.node;
-				NodeInfo* nodeInfo = view.modelTab->getNodeInfo(contact.node);
-                SelectionBuffer::get().clear();
-				SelectionBuffer::get().select(nodeInfo, false);
-               // nodeInfo->selectedChanged();
 				currentSate = State::Idle;
-
-				initTriad(view);
-
-				triadPtr->setCallback([&node = nodeToEdit, &prev = prevDelta](const glm::mat4& delta)
-					{
-						prev = delta * prev;
-						node->applyRelativeTransform(delta);
-					});
+				currentManipulator->handleMovement(MovementType::Release, view.getViewport(), x, y);
+				//for (auto& child : triadPtr->getChildren())
+				//	child->applyRelativeTransform(glm::inverse(prevDelta));
+				prevDelta = glm::mat4(1.0f);
+				for (auto& child : triadPtr->getChildren())
+					view.getOctree()->updateNode(child.get());
+				view.getOctree()->updateNode(nodeToEdit);
+				// y = view.getViewport().getHeight() - y;
+				//currentManipulator->handleMovement(MovementType::Release, view.getViewport(), x, y);
 			}
-		}
-	}
-
-	if (currentSate == State::Edit)
-	{
-		if (button == ButtonCode::LeftButton && action == Action::Press)
-		{
-			//y = view.getViewport().getHeight() - y;
-			currentManipulator->handleMovement(MovementType::Push, view.getViewport(), x, y);
-		}
-		else if (button == ButtonCode::LeftButton && action == Action::Release)
-		{
-			currentSate = State::Idle;
-			currentManipulator->handleMovement(MovementType::Release, view.getViewport(), x, y);
-			//for (auto& child : triadPtr->getChildren())
-			//	child->applyRelativeTransform(glm::inverse(prevDelta));
-			prevDelta = glm::mat4(1.0f);
-			for (auto& child : triadPtr->getChildren())
-				view.getOctree()->updateNode(child.get());
-			view.getOctree()->updateNode(nodeToEdit);
-			// y = view.getViewport().getHeight() - y;
-			//currentManipulator->handleMovement(MovementType::Release, view.getViewport(), x, y);
 		}
 	}
 }
@@ -139,6 +153,7 @@ void TransformNodeOperator::resetTriad(View& view)
 		if (nodeToEdit)
 			view.getOctree()->updateNode(nodeToEdit);
 		triadPtr = nullptr;
+		//nodeToEdit = nullptr;
 		view.update();
 	}
 }
@@ -176,13 +191,13 @@ void TransformNodeOperator::calcScaleMat(View& view)
 
 	float scaleFactor = glm::length(intersection - nodeOrigin) * view.getViewport().getZNear();
 	glm::mat4 scale = glm::scale(glm::vec3(scaleFactor * 4.0f));
-	
 
 
-		//glm::mat4 scaleToNode = glm::scale(glm::mat4(1.0f), { scaleFactor, scaleFactor, scaleFactor });
-		//triadPtr->setRelativeTransform(triadPtr->getRelativeTransform() * scale); 
-			for (auto& child : triadPtr->getChildren())
-				child->setRelativeTransform(child->getRelativeTransform() * scale);
+
+	//glm::mat4 scaleToNode = glm::scale(glm::mat4(1.0f), { scaleFactor, scaleFactor, scaleFactor });
+	//triadPtr->setRelativeTransform(triadPtr->getRelativeTransform() * scale); 
+	for (auto& child : triadPtr->getChildren())
+		child->setRelativeTransform(child->getRelativeTransform() * scale);
 	/*
 	RotationManipulator* rotationManipulator = nullptr;
 	for (auto& child : triadPtr->getChildren())
@@ -229,3 +244,59 @@ void TransformNodeOperator::calcTranslationMat()
 	}
 }
 
+void TransformNodeOperator::activateManipulator()
+{
+	int k = 0;
+	Node* mnodeToEdit;
+	if (isActive) {
+		if (!SelectionBuffer::get().getItems().empty())
+		{
+			mnodeToEdit = mview->modelTab->getLastSelected();
+			/*
+			for (auto item : SelectionBuffer::get().getItems())
+			{
+				//if (dynamic_cast<ModelNodeInfo*>(item))
+				//{
+				mnodeToEdit = item->getNode();
+					break;
+				//}
+			}*/
+			/*
+			for (auto item : SelectionBuffer::get().getItems())
+			{
+				if (dynamic_cast<PointLightNodeInfo*>(item))
+				{
+					nodeToEdit = item->getNode();
+					//lightToEdit = item;
+					break;
+				}
+			}*/
+			//nodeToEdit = SelectionBuffer::get().getItems().front();
+		   // emit nodeToEdit-> selectedChanged();
+		//}
+
+			if (mnodeToEdit) {
+				if (mnodeToEdit != nodeToEdit || nodeToEdit == nullptr || triadPtr == nullptr)
+				{
+					nodeToEdit = mnodeToEdit;
+
+					NodeInfo* nodeInfo = mview->modelTab->getNodeInfo(nodeToEdit);
+
+					currentSate = State::Idle;
+
+					initTriad(*mview);
+
+					triadPtr->setCallback([&node = nodeToEdit, &prev = prevDelta](const glm::mat4& delta)
+						{
+							prev = delta * prev;
+							node->applyRelativeTransform(delta);
+						});
+				}
+			}
+		}
+		else
+		{
+			resetTriad(*mview);
+		}
+	}
+}

@@ -15,44 +15,52 @@ void SelectionBuffer::select(NodeInfo* nodeInfo, bool recursively)
 	}
 	else
 	{
-		nodeInfo->setSelected(true);
 		items.push_back(nodeInfo);
+		emit nodeInfo->selectedChanged();
 	}
 	emit selectionBufferChanged();
 }
 
-void SelectionBuffer::deselect(NodeInfo& nodeInfo, bool recursively)
+void SelectionBuffer::deselect(NodeInfo* nodeInfo, bool recursively)
 {
 	if (recursively)
 	{
-		setSelectRecursively(&nodeInfo, false);
+		setSelectRecursively(nodeInfo, false);
 	}
 	else
 	{
-		nodeInfo.setSelected(false);
+		auto item = std::find(std::begin(items), std::end(items), nodeInfo);
+		if (item != items.end())
+		{
+			NodeInfo* node = *item;
+			items.erase(item);
+			emit node->selectedChanged();
+		}
 	}
+	emit selectionBufferChanged();
 }
 
-bool SelectionBuffer::isSelected(NodeInfo& nodeInfo, bool requireAllChilds)
+bool SelectionBuffer::isSelected(NodeInfo* nodeInfo, bool requireAllChilds)
 {
 	if (requireAllChilds)
 	{
-		return isAllChildSelected(&nodeInfo);
+		return isAllChildSelected(nodeInfo);
 	}
 	else
 	{
-        return nodeInfo.selected();//std::find(items.begin(), items.end(), &nodeInfo) != items.end();
+		return  std::find(items.begin(), items.end(), nodeInfo) != items.end();
 	}
 }
 
 void SelectionBuffer::clear()
 {
-	for (auto& item : items)
+	while (!items.empty())
 	{
-		item->setSelected(false);
-        emit item->selectedChanged();
+		NodeInfo* node = items.front();
+		items.erase(items.begin());
+		emit node->selectedChanged();
 	}
-	items.clear();
+	emit selectionBufferChanged();
 }
 
 bool SelectionBuffer::isEmpty()
@@ -62,18 +70,44 @@ bool SelectionBuffer::isEmpty()
 
 void SelectionBuffer::setSelectRecursively(NodeInfo* nodeInfo, bool state)
 {
-	nodeInfo->setSelected(true);
-	items.push_back(nodeInfo);
-	setSelectRecursively(nodeInfo->getChildren(), true);
+	if (state)
+	{
+		items.push_back(nodeInfo);
+		emit nodeInfo->selectedChanged();
+	}
+	else
+	{
+		auto item = std::find(std::begin(items), std::end(items), nodeInfo);
+		if (item != items.end())
+		{
+			NodeInfo* node = *item;
+			items.erase(item);
+			emit node->selectedChanged();
+		}
+	}
+	setSelectRecursively(nodeInfo->getChildren(), state);
+	emit selectionBufferChanged();
 }
 
 void SelectionBuffer::setSelectRecursively(std::vector<NodeInfo*> nodes, bool state)
 {
 	for (const auto& node : nodes)
 	{
-		node->setSelected(true);
-		items.push_back(node);
-		setSelectRecursively(node->getChildren(), true);
+		if (state)
+		{
+			items.push_back(node);
+		}
+		else
+		{
+			auto item = std::find(std::begin(items), std::end(items), node);
+			if (item != items.end())
+			{
+				NodeInfo* node = *item;
+				items.erase(item);
+				emit node->selectedChanged();
+			}
+		}
+		setSelectRecursively(node->getChildren(), state);
 	}
 }
 
@@ -81,7 +115,7 @@ bool SelectionBuffer::isAllChildSelected(NodeInfo* nodeInfo)
 {
 	bool childsSelected = false;
 	isAllChildSelected(nodeInfo->getChildren(), childsSelected);
-    bool nodeSelected = nodeInfo->selected(); //std::find(items.begin(), items.end(), nodeInfo) != items.end();
+	bool nodeSelected = std::find(items.begin(), items.end(), nodeInfo) != items.end();
 	return nodeSelected && childsSelected;
 }
 
@@ -89,7 +123,7 @@ void SelectionBuffer::isAllChildSelected(std::vector<NodeInfo*> nodes, bool& chi
 {
 	for (auto node : nodes)
 	{
-        bool isItemExist = node->selected();//std::find(items.begin(), items.end(), node) != items.end();
+		bool isItemExist = std::find(items.begin(), items.end(), node) != items.end();
 		if (!isItemExist)
 		{
 			childsSelected = false;
@@ -99,6 +133,33 @@ void SelectionBuffer::isAllChildSelected(std::vector<NodeInfo*> nodes, bool& chi
 		{
 			childsSelected = true;
 			isAllChildSelected(node->getChildren(), childsSelected);
+		}
+	}
+}
+bool SelectionBuffer::isOneChildSelected(NodeInfo* nodeInfo)
+{
+	bool childsSelected = false;
+	isOneChildSelected(nodeInfo->getChildren(), childsSelected);
+	bool nodeSelected = std::find(items.begin(), items.end(), nodeInfo) != items.end();
+	return nodeSelected || childsSelected;
+}
+void SelectionBuffer::isOneChildSelected(std::vector<NodeInfo*> nodes, bool& childsSelected)
+{
+	if (childsSelected)
+		return;
+
+	for (auto node : nodes)
+	{
+		bool isItemExist = std::find(items.begin(), items.end(), node) != items.end();
+		if (isItemExist)
+		{
+			childsSelected = true;
+			return;
+		}
+		else if (!childsSelected)
+		{
+			childsSelected = false;
+			isOneChildSelected(node->getChildren(), childsSelected);
 		}
 	}
 }

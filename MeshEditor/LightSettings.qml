@@ -12,9 +12,13 @@ import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 1.3
 
 ColumnLayout {
-
-
-
+/*
+    Rectangle {
+            color: "#EDF2F4" //"#F5F5F5"
+            anchors.fill:parent
+            z:-1
+    }
+*/
     Text {
         text: "Light Settings"
         font.pointSize: 15
@@ -24,7 +28,7 @@ ColumnLayout {
     }
 
     Switch {
-        id: "lightEnableSwitch"
+        id: lightEnableSwitch
         Layout.topMargin: 10
         Layout.leftMargin: 20
         property bool isEnable: true
@@ -36,7 +40,7 @@ ColumnLayout {
     }
 
     Switch {
-        id: "lightVisibleSwitch"
+        id: lightVisibleSwitch
         Layout.topMargin: 10
         Layout.leftMargin: 20
         property bool isEnable: true

@@ -6,16 +6,14 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        Controller/addroadtilecontroller.cpp \
         Controller/controllerdispatcher.cpp \
-        Controller/directionallight.cpp \
         Controller/manipulator.cpp \
         Controller/orbit.cpp \
         Controller/pan.cpp \
         Controller/pointlight.cpp \
         Controller/rotationmanipulator.cpp \
         Controller/scalemanipulator.cpp \
-        Controller/transformnodeoperator.cpp \
+        Controller/transformnodecontroller.cpp \
         Controller/translationmanipulator.cpp \
         Controller/triad.cpp \
         Controller/zoom.cpp \
@@ -43,10 +41,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    Controller/addroadtilecontroller.h \
     Controller/controller.h \
     Controller/controllerdispatcher.h \
-    Controller/directionallight.h \
     Controller/filtervalue.h \
     Controller/manipulator.h \
     Controller/orbit.h \
@@ -54,7 +50,7 @@ HEADERS += \
     Controller/pointlight.h \
     Controller/rotationmanipulator.h \
     Controller/scalemanipulator.h \
-    Controller/transformnodeoperator.h \
+    Controller/transformnodecontroller.h \
     Controller/translationmanipulator.h \
     Controller/triad.h \
     Controller/zoom.h \

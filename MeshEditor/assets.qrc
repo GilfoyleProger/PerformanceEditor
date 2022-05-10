@@ -1,5 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/expand-button.png</file>
+        <file>icons/add-point-light.png</file>
+        <file>icons/delete.png</file>
+        <file>icons/magic-wand.png</file>
     </qresource>
 </RCC>

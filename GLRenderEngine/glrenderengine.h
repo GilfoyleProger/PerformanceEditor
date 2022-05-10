@@ -25,8 +25,11 @@ struct Texture
 {
 	unsigned int id;
 	std::string name;
+	std::string type;
 	std::string fullpath;
 	QOpenGLTexture* ptr;
+	QImage image;
+	bool enabled = false;
 };
 
 struct Material
@@ -40,33 +43,24 @@ struct Material
 	glm::vec3 specular = glm::vec3(0.0f, 0.0f, 0.0f);
 	bool specularEnabled = false;
 
-	// default:
 	glm::vec3 emission = glm::vec3(0.0f, 0.0f, 0.0f);
-    bool emissionEnabled = false;
+	bool emissionEnabled = false;
 
 	float shininess = 0.0f;
 
-    //float refractIndex = 1.0f;
-    //float opacity = 1.0f;
+	//float refractIndex = 1.0f;
+	//float opacity = 1.0f;
 	std::string name = "";
+
+	bool diffuseMapEnabled = false;
+	bool specularMapEnabled = false;
+	bool normalMapEnabled = false;
+	
 };
-/*
-struct LightSettings
-{
-	glm::vec3 position;
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-};
-*/
+
 struct Container
 {
-	/*
-	std::unique_ptr<QOpenGLVertexArrayObject> vao=nullptr;
-	std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
-	std::unique_ptr<QOpenGLBuffer> ebo = nullptr;
-	*/
-	QOpenGLVertexArrayObject *vao= nullptr;
+	QOpenGLVertexArrayObject* vao = nullptr;
 	QOpenGLBuffer* vbo = nullptr;
 	QOpenGLBuffer* ebo = nullptr;
 };
@@ -78,6 +72,7 @@ struct UniformContainer
 	std::map<std::string, QVector2D> uniformToVec2;
 	std::map<std::string, GLfloat> uniformToFloat;
 	std::map<std::string, bool> uniformToBool;
+	std::map<std::string, int> uniformToInt;
 };
 
 enum class DrawType { Arrays, Elements };
@@ -111,17 +106,13 @@ public:
 	const QMatrix4x4& getProjMatrix() const;
 
 	int loadTexture(std::string path);
-	std::map<int, Container> containers;
-	Texture& getTexture(int id) 
-	{
-		return texturesStorage[id];
-	}
+	Texture* getTexture(int id);
 private:
+	std::map<int, Texture> texturesStorage;
 	QOpenGLFunctions* glFunctions;
 	QMatrix4x4 worldMatrix;
 	QMatrix4x4 viewMatrix;
 	QMatrix4x4 projMatrix;
-	//std::map<int, Container> containers;
+
 	void setUniformsToShader(UniformContainer uniformContainer, ShaderProgram* shaderProgram);
-	std::map<int, Texture> texturesStorage;
 };

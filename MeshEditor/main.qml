@@ -9,8 +9,8 @@ import QtQml 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Dialogs 1.3
-
+//import QtQuick.Dialogs 1.3
+import Qt.labs.platform 1.1
 Rectangle {
     id: root
     width: 1366
@@ -22,18 +22,41 @@ Rectangle {
     RowLayout {
 
         FileDialog {
-            id: fileDialog
+            id: importDialog
             title: "Please choose a file"
-            folder: shortcuts.home
+           // folder: shortcuts.home
+            folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        fileMode: FileDialog.OpenFile
+            nameFilters: [ "Model files (*.obj *.fbx *.dae *.stl)", "*.obj", "*.fbx","*.dae","*.stl" ]
             onAccepted: {
-                renderSystem.loadModel(fileDialog.fileUrl);
-                console.log("You chose: " + fileDialog.fileUrls)
-                Qt.quit()
+                renderSystem.loadModel(file);
+                //console.log("You chose: " + importDialog.fileUrls)
+                //Qt.quit()
             }
-            onRejected: {
-                console.log("Canceled")
-                Qt.quit()
+          //  onRejected: {
+                //console.log("Canceled")
+                //Qt.quit()
+           // }
+        }
+
+        FileDialog {
+            id: exportDialog
+            title: "Please choose place to save"
+           // folder: shortcuts.home
+           // currentFile:"C:/"
+                folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+            fileMode: FileDialog.SaveFile
+            nameFilters: [ "*.obj", "*.fbx","*.dae","*.stl" ]
+            defaultSuffix: "obj"
+            onAccepted: {
+                renderSystem.saveModel(file);
+                //console.log("You chose: " + fileDialog.fileUrls)
+               // Qt.quit()
             }
+            //onRejected: {
+                //console.log("Canceled")
+                //Qt.quit()
+            //}
         }
 
         GLRenderSystem {
@@ -55,15 +78,25 @@ Rectangle {
 
                     Button {
                         text: qsTr("Export")
+                        background: Rectangle {
+                            color: "white"
+                        }
+                        Layout.preferredHeight: 40
+                        Layout.preferredWidth: 110
                         onClicked: {
-                            fileDialog.open();
+                            exportDialog.open();
                         }
                     }
 
                     Button {
                         text: qsTr("Import")
+                        background: Rectangle {
+                            color: "white"
+                        }
+                        Layout.preferredHeight: 40
+                        Layout.preferredWidth: 110
                         onClicked: {
-                            fileDialog.open();
+                            importDialog.open();
                         }
                     }
                 }
@@ -123,12 +156,19 @@ Rectangle {
                 id: controls
                 currentIndex: 0
 
+                Loader
+                {
+                id:dsdsd
+                source: "qrc:/qml/ModelSettings.qml"
+                }
+
+/*
                 Rectangle {
-                    color: "#EDF2F4"
+                   color: "#EDF2F4"
                     implicitWidth: 330
                     implicitHeight: 200
                     ModelSettings{}
-                }
+               }*/
 
                 Rectangle {
                     color: '#EDF2F4'
@@ -137,10 +177,14 @@ Rectangle {
                     LightSettings{}
                 }
 
+
+
+
                 Rectangle {
                     color: '#EDF2F4'
                     implicitWidth: 330
                     implicitHeight: 200
+                    BackgroundSettings{}
                 }
             }
         }
