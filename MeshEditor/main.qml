@@ -9,8 +9,8 @@ import QtQml 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtQuick.Layouts 1.15
-//import QtQuick.Dialogs 1.3
 import Qt.labs.platform 1.1
+
 Rectangle {
     id: root
     width: 1366
@@ -23,40 +23,25 @@ Rectangle {
 
         FileDialog {
             id: importDialog
-            title: "Please choose a file"
-           // folder: shortcuts.home
+            title: "Please choose file to import"
             folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
-        fileMode: FileDialog.OpenFile
-            nameFilters: [ "Model files (*.obj *.fbx *.dae *.stl)", "*.obj", "*.fbx","*.dae","*.stl" ]
+            fileMode: FileDialog.OpenFile
+            nameFilters: [ "Model files (*.obj *.fbx *.dae *.stl)", "*.obj", "*.fbx", "*.dae", "*.stl" ]
             onAccepted: {
                 renderSystem.loadModel(file);
-                //console.log("You chose: " + importDialog.fileUrls)
-                //Qt.quit()
             }
-          //  onRejected: {
-                //console.log("Canceled")
-                //Qt.quit()
-           // }
         }
 
         FileDialog {
             id: exportDialog
-            title: "Please choose place to save"
-           // folder: shortcuts.home
-           // currentFile:"C:/"
-                folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+            title: "Please choose file to export"
+            folder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
             fileMode: FileDialog.SaveFile
-            nameFilters: [ "*.obj", "*.fbx","*.dae","*.stl" ]
+            nameFilters: [ "*.obj", "*.fbx", "*.dae", "*.stl" ]
             defaultSuffix: "obj"
             onAccepted: {
                 renderSystem.saveModel(file);
-                //console.log("You chose: " + fileDialog.fileUrls)
-               // Qt.quit()
             }
-            //onRejected: {
-                //console.log("Canceled")
-                //Qt.quit()
-            //}
         }
 
         GLRenderSystem {
@@ -107,7 +92,6 @@ Rectangle {
                 }
 
                 SceneLightList {
-                    //Layout.alignment: Qt.AlignTop
                     anchors.top: modelList.bottom
                     anchors.topMargin: 20;
                 }
@@ -156,19 +140,9 @@ Rectangle {
                 id: controls
                 currentIndex: 0
 
-                Loader
-                {
-                id:dsdsd
-                source: "qrc:/qml/ModelSettings.qml"
+                Loader {
+                    source: "qrc:/qml/ModelSettings.qml"
                 }
-
-/*
-                Rectangle {
-                   color: "#EDF2F4"
-                    implicitWidth: 330
-                    implicitHeight: 200
-                    ModelSettings{}
-               }*/
 
                 Rectangle {
                     color: '#EDF2F4'
@@ -176,9 +150,6 @@ Rectangle {
                     implicitHeight: 200
                     LightSettings{}
                 }
-
-
-
 
                 Rectangle {
                     color: '#EDF2F4'

@@ -16,9 +16,9 @@ std::unique_ptr<Node> ModelLoader::loadModel(std::string const& path)
 		return nullptr;
 
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);//| aiProcess_FlipUVs    | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
 
-	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
 		std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
 		return nullptr;
@@ -30,34 +30,24 @@ std::unique_ptr<Node> ModelLoader::loadModel(std::string const& path)
 	std::unique_ptr<Node> rootNode = std::make_unique<Node>();
 	processNode(scene->mRootNode, scene, rootNode.get(), fileType);
 
-
-	//Assimp::Exporter exporter;
-
-	//aiScene* aiscene;
-
-		//exporter.Export(scene, "obj", "C:\\Users\\Stepan\\Desktop\\babum.obj");
-	//Model* model = new Model();
-	//model->attachNode(std::move(rootNode));
-	//std::unique_ptr<Node> newNode = saveModel(model, "C:\\Users\\Stepan\\Desktop\\babum.obj");
 	return std::move(rootNode);
 }
 
-std::unique_ptr<Node> ModelLoader::saveModel(Model* modelPtr, std::string path)
-{/*
-	if (!modelPtr || path.empty() || std::filesystem::exists(path))
-		return nullptr;
-*/
-	FileType fileType = getType(path);
-	/*
-	if (!checkFileType(fileType))
-		return nullptr;
+void ModelLoader::saveModel(const Model& modelPtr, std::string const& path)
+{
+	if (path.empty() || std::filesystem::exists(path))
+		return;
 
-	*/
+	FileType fileType = getType(path);
+
+	if (!checkFileType(fileType))
+		return;
+
 	Assimp::Exporter exporter;
 
 	aiScene aiscene;
 
-	const int meshCount = getMeshCount(*modelPtr);
+	const int meshCount = getMeshCount(modelPtr);
 	aiscene.mMeshes = new aiMesh * [meshCount];
 	aiscene.mNumMeshes = 0;
 
@@ -67,38 +57,25 @@ std::unique_ptr<Node> ModelLoader::saveModel(Model* modelPtr, std::string path)
 	aiscene.mRootNode = new aiNode();
 	aiscene.mRootNode->mName = "Scene";
 
+	std::string materialPath = path;
+	auto pos = materialPath.find_last_of('/');
+	materialPath = materialPath.substr(0, pos);
 
-	std::string imagePath = path;
-
-	auto const pos = imagePath.find_last_of('/');
-	imagePath = imagePath.substr(0,pos);
-
-	for (auto& node : modelPtr->getNodes())
+	for (auto& node : modelPtr.getNodes())
 	{
-		saveNode(aiscene.mRootNode, node->getChildren(), &aiscene, imagePath);
+		saveNode(aiscene.mRootNode, node->getChildren(), &aiscene, materialPath);
 	}
 
 	if (aiscene.mNumMeshes > 0)
 	{
 		exporter.Export(&aiscene, getExtensionStr(path).c_str(), path.c_str());
 	}
-
-	std::unique_ptr<Node> rootNode = std::make_unique<Node>();
-	processNode(aiscene.mRootNode, &aiscene, rootNode.get(), fileType);
-	for (int i = 0; i < 2; i++)
-	{
-		auto df = aiscene.mRootNode->mChildren[i];
-		int k = 0;
-	}
-	int k = 0;
-	return std::move(rootNode);
 }
 
 void ModelLoader::processNode(aiNode* node, const aiScene* scene, Node* meshNode, FileType fileType)
 {
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
-		//int d = node->mMeshes[i];
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshNode->attachMesh(processMesh(mesh, scene, fileType));
 	}
@@ -113,42 +90,39 @@ void ModelLoader::processNode(aiNode* node, const aiScene* scene, Node* meshNode
 	}
 }
 
-std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, FileType fileType)
+std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* aimesh, const aiScene* aiscene, FileType fileType)
 {
 	HalfEdge::HalfEdgeTable halfEdgeTable;
-
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> vertexNormals;
 	std::vector<glm::vec2> faceTextureCoords;
 	std::vector<unsigned int> indices;
 
-
-
-	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+	for (unsigned int i = 0; i < aimesh->mNumVertices; i++)
 	{
-		vertices.push_back(glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z));
+		vertices.push_back(glm::vec3(aimesh->mVertices[i].x, aimesh->mVertices[i].y, aimesh->mVertices[i].z));
 
-		if (mesh->HasNormals())
+		if (aimesh->HasNormals())
 		{
-			vertexNormals.push_back(glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z));
+			vertexNormals.push_back(glm::vec3(aimesh->mNormals[i].x, aimesh->mNormals[i].y, aimesh->mNormals[i].z));
 		}
 
 		glm::vec2 textureCoords;
-		if (mesh->mTextureCoords[0])
+		if (aimesh->mTextureCoords[0])
 		{
-			faceTextureCoords.emplace_back(glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y));
+			faceTextureCoords.emplace_back(glm::vec2(aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y));
 		}
 		else
 		{
-			textureCoords = glm::vec2(0.0f, 0.0f); //TO delete
+			faceTextureCoords.emplace_back(0.0f, 0.0f);
 		}
 	}
 
 	addedVertices.clear();
 
-	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+	for (unsigned int i = 0; i < aimesh->mNumFaces; i++)
 	{
-		aiFace face = mesh->mFaces[i];
+		aiFace face = aimesh->mFaces[i];
 
 		int a = face.mIndices[0];
 		int b = face.mIndices[1];
@@ -174,58 +148,65 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 	}
 	halfEdgeTable.connectTwins();
 
-	std::unique_ptr<Mesh> meshPtr = std::make_unique<Mesh>(halfEdgeTable);
-	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(halfEdgeTable);
+	processMaterial(aimesh, mesh.get(), aiscene, fileType);
+
+	return std::move(mesh);
+}
+
+void ModelLoader::processMaterial(aiMesh* aimesh, Mesh* mesh, const aiScene* scene, FileType fileType)
+{
+	aiMaterial* material = scene->mMaterials[aimesh->mMaterialIndex];
 
 	aiString name;
 	if (AI_SUCCESS != material->Get(AI_MATKEY_NAME, name))
 	{
 		name = "unnamed";
 	}
-	meshPtr->getMaterial().name = std::string(name.C_Str());
-	meshPtr->setMeshName(std::string(mesh->mName.C_Str()));
+	mesh->getMaterial().name = std::string(name.C_Str());
+	mesh->setMeshName(std::string(aimesh->mName.C_Str()));
 
-	meshPtr->getMaterial().ambient = glm::vec3(0.f, 0.f, 0.f);
-	meshPtr->getMaterial().ambientEnabled = false;
+	mesh->getMaterial().ambient = glm::vec3(0.f, 0.f, 0.f);
+	mesh->getMaterial().ambientEnabled = false;
 	aiColor3D ambient(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, ambient))
 	{
-		meshPtr->getMaterial().ambient = glm::vec3(ambient.r, ambient.g, ambient.b); //glm::vec3(0.5f, 0.5f, 0.5f);//
-		meshPtr->getMaterial().ambientEnabled = true;
+		mesh->getMaterial().ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
+		mesh->getMaterial().ambientEnabled = true;
 	}
 
-	meshPtr->getMaterial().diffuse = glm::vec3(0.f, 0.f, 0.f);
-	meshPtr->getMaterial().diffuseEnabled = false;
+	mesh->getMaterial().diffuse = glm::vec3(0.f, 0.f, 0.f);
+	mesh->getMaterial().diffuseEnabled = false;
 	aiColor3D diffuse(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse))
 	{
-		meshPtr->getMaterial().diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);//glm::vec3(0.5f, 0.5f, 0.5f);
-		meshPtr->getMaterial().diffuseEnabled = true;
+		mesh->getMaterial().diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
+		mesh->getMaterial().diffuseEnabled = true;
 	}
 
-	meshPtr->getMaterial().specular = glm::vec3(0.f, 0.f, 0.f);
-	meshPtr->getMaterial().specularEnabled = false;
+	mesh->getMaterial().specular = glm::vec3(0.f, 0.f, 0.f);
+	mesh->getMaterial().specularEnabled = false;
 	aiColor3D specular(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, specular))
 	{
-		meshPtr->getMaterial().specular = glm::vec3(specular.r, specular.g, specular.b); //glm::vec3(0.5f, 0.5f, 0.5f); //
-		meshPtr->getMaterial().specularEnabled = true;
+		mesh->getMaterial().specular = glm::vec3(specular.r, specular.g, specular.b);
+		mesh->getMaterial().specularEnabled = true;
 	}
 
-	meshPtr->getMaterial().emission = glm::vec3(0.f, 0.f, 0.f);
-	meshPtr->getMaterial().emissionEnabled = false;
+	mesh->getMaterial().emission = glm::vec3(0.f, 0.f, 0.f);
+	mesh->getMaterial().emissionEnabled = false;
 	aiColor3D emission(0.f, 0.f, 0.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_EMISSIVE, emission))
 	{
-		meshPtr->getMaterial().emission = glm::vec3(emission.r, emission.g, emission.b);
-		meshPtr->getMaterial().emissionEnabled = true;
+		mesh->getMaterial().emission = glm::vec3(emission.r, emission.g, emission.b);
+		mesh->getMaterial().emissionEnabled = true;
 	}
 
-	meshPtr->getMaterial().shininess = 1.0f;
+	mesh->getMaterial().shininess = 1.0f;
 	float shininess(1.f);
 	if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS, shininess))
 	{
-		meshPtr->getMaterial().shininess = shininess;
+		mesh->getMaterial().shininess = shininess;
 	}
 
 	std::vector<Texture> textures;
@@ -237,27 +218,25 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 
 	std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
 	if (!diffuseMaps.empty())
-		meshPtr->getMaterial().diffuseMapEnabled = true;
+		mesh->getMaterial().diffuseMapEnabled = true;
 	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
 	std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
 	if (!specularMaps.empty())
-		meshPtr->getMaterial().specularMapEnabled = true;
+		mesh->getMaterial().specularMapEnabled = true;
 	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
 	std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+	if (!normalMaps.empty())
+		mesh->getMaterial().normalMapEnabled = true;
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 
-	std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
-	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-
 	std::vector<int> texturesId;
-	for (auto& tex : textures)
+	for (auto& texture : textures)
 	{
-		texturesId.push_back(tex.id);
+		texturesId.push_back(texture.id);
 	}
-	meshPtr->setTextures(texturesId);
-	return std::move(meshPtr);
+	mesh->setTextures(texturesId);
 }
 
 HalfEdge::VertexHandle ModelLoader::addVertex(HalfEdge::HalfEdgeTable& halfEdgeTable, glm::vec3 vertex)
@@ -299,12 +278,10 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 		}
 		if (!skip)
 		{
-
 			// if texture hasn't been loaded already, load it
 			Texture* texture = loadTexture(std::string(str.C_Str()), this->currentDirectory, getTextureType(type));
-			//if(type == aiTextureType_DIFFUSE)
-		   //     texture.name = "diffuseMap";
-			if (texture) {
+			if (texture)
+			{
 				textures.push_back(*texture);
 				currentLoadedTextures.push_back(*texture);
 			}
@@ -313,7 +290,7 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 	return textures;
 }
 
-Texture* ModelLoader::loadTexture(const std::string& name, const std::string& directory, std::string type)
+Texture* ModelLoader::loadTexture(const std::string& name, const std::string& directory, const std::string& type)
 {
 	std::string filename = directory + '/' + name;
 	int textureId = renderEngine->loadTexture(filename);
@@ -328,6 +305,23 @@ Texture* ModelLoader::loadTexture(const std::string& name, const std::string& di
 		return &texture;
 	}
 	return nullptr;
+}
+
+std::string ModelLoader::getTextureType(aiTextureType type)
+{
+	if (type == aiTextureType_DIFFUSE)
+	{
+		return "diffuseMap";
+	}
+	else if (type == aiTextureType_SPECULAR)
+	{
+		return "specularMap";
+	}
+	else if (type == aiTextureType_NORMALS)
+	{
+		return "normalMap";
+	}
+	return "";
 }
 
 glm::mat4 ModelLoader::toGLM(const aiMatrix4x4& aiMatrix)
@@ -405,6 +399,15 @@ FileType ModelLoader::getType(std::string const& path)
 		return FileType::FBX;
 }
 
+std::string ModelLoader::getExtensionStr(std::string const& path)
+{
+	std::string extension = std::filesystem::path(path).extension().string();
+	if (!extension.empty())
+		extension.erase(0, 1);
+	std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
+	return extension;
+}
+
 bool ModelLoader::checkFileType(FileType fileType)
 {
 	if (fileType == FileType::STL)
@@ -418,6 +421,7 @@ bool ModelLoader::checkFileType(FileType fileType)
 	else
 		return false;
 }
+
 void ModelLoader::formNodeList(std::vector<Node*>& nodeList, const std::vector<std::unique_ptr<Node>>& nodePtrList)
 {
 	for (const auto& nodePtr : nodePtrList)
@@ -435,36 +439,7 @@ std::vector<Node*> ModelLoader::getNodeList(const Model& model)
 	return nodeList;
 }
 
-std::vector<Node*> ModelLoader::getNodeList(Node* node)
-{
-	std::vector<Node*> nodeList;
-	nodeList.push_back(node);
-	formNodeList(nodeList, node->getChildren());
-	return nodeList;
-}
-
-void ModelLoader::saveNode(aiNode* aiParentNode, Node* node, aiScene* scene)
-{
-	aiNode* ainode = new aiNode();
-	ainode->mMeshes = new unsigned int[node->getMeshes().size()];
-
-
-	for (auto& mesh : node->getMeshes())
-	{
-		scene->mMeshes[scene->mNumMeshes] = new aiMesh();
-		ainode->mMeshes[ainode->mNumMeshes] = 0;
-		ainode->mNumMeshes = ainode->mNumMeshes + 1;
-		scene->mNumMeshes = scene->mNumMeshes + 1;
-
-		aiParentNode->addChildren(aiParentNode->mNumChildren, &ainode);
-
-		int k = 0;
-		//auto pMesh = scene.mMeshes[0];/
-	}
-	//aiNode-
-}
-
-void ModelLoader::saveNode(aiNode* aiParentNode, const std::vector<std::unique_ptr<Node>>& nodes, aiScene* scene,std::string path)
+void ModelLoader::saveNode(aiNode* aiParentNode, const std::vector<std::unique_ptr<Node>>& nodes, aiScene* scene, std::string const& materialPath)
 {
 	for (const auto& node : nodes)
 	{
@@ -475,122 +450,130 @@ void ModelLoader::saveNode(aiNode* aiParentNode, const std::vector<std::unique_p
 
 		for (auto& mesh : node->getMeshes())
 		{
-			scene->mMaterials[scene->mNumMaterials] = new aiMaterial();
-			scene->mNumMaterials = scene->mNumMaterials + 1;
-
-			scene->mMeshes[scene->mNumMeshes] = new aiMesh();
-			scene->mMeshes[scene->mNumMeshes]->mMaterialIndex = scene->mNumMaterials - 1;
-			scene->mNumMeshes = scene->mNumMeshes + 1;
-
-			ainode->mMeshes[ainode->mNumMeshes] = scene->mNumMeshes - 1;
-			ainode->mNumMeshes = ainode->mNumMeshes + 1;
-
-			auto pMesh = scene->mMeshes[scene->mNumMeshes - 1];
-			pMesh->mName = mesh->getMeshName().c_str();
-			const auto& halfEdgeTable = mesh->getHalfEdgeTable();
-			const auto& faces = halfEdgeTable.getFaces();
-			std::vector<glm::vec3> vertices;
-			std::vector<glm::vec3> normals;
-			std::vector<glm::vec2> textureCoords;
-			for (int i = 0; i < faces.size(); i++)
-			{
-				std::vector<glm::vec3> faceVertices;
-				std::vector<glm::vec3> faceNormals;
-				std::vector<glm::vec2> faceTextureCoords;
-				getFaceVertices(halfEdgeTable, halfEdgeTable.handle(faces[i]), faceVertices, faceNormals, faceTextureCoords);
-
-				vertices.insert(vertices.end(), faceVertices.begin(), faceVertices.end());
-				normals.insert(normals.end(), faceNormals.begin(), faceNormals.end());
-				textureCoords.insert(textureCoords.end(), faceTextureCoords.begin(), faceTextureCoords.end());
-			}
-
-			const int verticesCount = vertices.size();
-			pMesh->mVertices = new aiVector3D[verticesCount];
-			pMesh->mNormals = new aiVector3D[verticesCount];
-			pMesh->mNumVertices = verticesCount;
-
-			const int textureCoordsCount = textureCoords.size();
-			pMesh->mTextureCoords[0] = new aiVector3D[textureCoordsCount];
-			pMesh->mNumUVComponents[0] = textureCoordsCount;
-
-			for (int i = 0; i < vertices.size(); i++)
-			{
-				pMesh->mVertices[i] = aiVector3D(vertices[i].x, vertices[i].y, vertices[i].z);
-				pMesh->mNormals[i] = aiVector3D(normals[i].x, normals[i].y, normals[i].z);
-				//if (!textureCoords.empty())
-				//	pMesh->mTextureCoords[0][i] = aiVector3D(textureCoords[i].x, textureCoords[i].y, 0);
-			}
-			for (int i = 0; i < textureCoords.size(); i++)
-			{
-
-				//if (!textureCoords.empty())
-				pMesh->mTextureCoords[0][i] = aiVector3D(textureCoords[i].x, textureCoords[i].y, 0);
-			}
-
-			pMesh->mFaces = new aiFace[vertices.size() / 3];
-			pMesh->mNumFaces = (unsigned int)(vertices.size() / 3);
-
-			int k = 0;
-			for (int i = 0; i < (vertices.size() / 3); i++)
-			{
-				aiFace& face = pMesh->mFaces[i];
-				face.mIndices = new unsigned int[3];
-				face.mNumIndices = 3;
-
-				face.mIndices[0] = k;
-				face.mIndices[1] = k + 1;
-				face.mIndices[2] = k + 2;
-				k = k + 3;
-			}
-			int w = 0;
-
-			auto pMaterial = scene->mMaterials[scene->mNumMaterials - 1];
-
-
-			aiColor3D ambientColor = aiColor3D(mesh->getMaterial().ambient.x, mesh->getMaterial().ambient.y, mesh->getMaterial().ambient.z);
-			aiColor3D diffuseColor = aiColor3D(mesh->getMaterial().diffuse.x, mesh->getMaterial().diffuse.y, mesh->getMaterial().diffuse.z);
-			aiColor3D specularColor = aiColor3D(mesh->getMaterial().specular.x, mesh->getMaterial().specular.y, mesh->getMaterial().specular.z);
-			aiColor3D emissiveColor = aiColor3D(mesh->getMaterial().emission.x, mesh->getMaterial().emission.y, mesh->getMaterial().emission.z);
-			float shininess = mesh->getMaterial().shininess;
-
-			pMaterial->AddProperty(&ambientColor, 1, AI_MATKEY_COLOR_AMBIENT);
-			pMaterial->AddProperty(&diffuseColor, 1, AI_MATKEY_COLOR_DIFFUSE);
-			pMaterial->AddProperty(&specularColor, 1, AI_MATKEY_COLOR_SPECULAR);
-			pMaterial->AddProperty(&emissiveColor, 1, AI_MATKEY_COLOR_EMISSIVE);
-			pMaterial->AddProperty(&shininess, 1, AI_MATKEY_SHININESS);
-
-			aiString ainame = aiString(mesh->getMaterial().name.c_str());
-			pMaterial->AddProperty(&ainame, AI_MATKEY_NAME);
-			
-			if (mesh->getDiffuseMap()) {
-				aiString texName = aiString(mesh->getDiffuseMap()->name.c_str());
-
-				pMaterial->AddProperty(&texName, AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0));
-				std::string pathImage = path + "/" + mesh->getDiffuseMap()->name;
-				mesh->getDiffuseMap()->image.save(QString::fromStdString(pathImage));
-			}
-
-			if (mesh->getSpecularMap()) {
-				aiString texName = aiString(mesh->getSpecularMap()->name.c_str());
-
-				pMaterial->AddProperty(&texName, AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0));
-				std::string pathImage = path + "/" + mesh->getSpecularMap()->name;
-				mesh->getSpecularMap()->image.save(QString::fromStdString(pathImage));
-			}
-
-			if (mesh->getNormalMap()) {
-				aiString texName = aiString(mesh->getNormalMap()->name.c_str());
-
-				pMaterial->AddProperty(&texName, AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0));
-				std::string pathImage = path + "/" + mesh->getNormalMap()->name;
-				mesh->getNormalMap()->image.save(QString::fromStdString(pathImage));
-			}
+			saveMesh(mesh.get(), ainode, scene);
+			saveMaterial(mesh.get(), scene, materialPath);
 		}
-
 
 		aiParentNode->addChildren(1, &ainode);
 		if (!node->getChildren().empty())
-			saveNode(ainode, node->getChildren(), scene,path);
+			saveNode(ainode, node->getChildren(), scene, materialPath);
+	}
+}
+
+void ModelLoader::saveMesh(Mesh* mesh, aiNode* ainode, aiScene* scene)
+{
+	scene->mMaterials[scene->mNumMaterials] = new aiMaterial();
+	scene->mNumMaterials = scene->mNumMaterials + 1;
+
+	scene->mMeshes[scene->mNumMeshes] = new aiMesh();
+	scene->mMeshes[scene->mNumMeshes]->mMaterialIndex = scene->mNumMaterials - 1;
+	scene->mNumMeshes = scene->mNumMeshes + 1;
+
+	ainode->mMeshes[ainode->mNumMeshes] = scene->mNumMeshes - 1;
+	ainode->mNumMeshes = ainode->mNumMeshes + 1;
+
+	auto pMesh = scene->mMeshes[scene->mNumMeshes - 1];
+	pMesh->mName = mesh->getMeshName().c_str();
+	const auto& halfEdgeTable = mesh->getHalfEdgeTable();
+	const auto& faces = halfEdgeTable.getFaces();
+	std::vector<glm::vec3> vertices;
+	std::vector<glm::vec3> normals;
+	std::vector<glm::vec2> textureCoords;
+	for (int i = 0; i < faces.size(); i++)
+	{
+		std::vector<glm::vec3> faceVertices;
+		std::vector<glm::vec3> faceNormals;
+		std::vector<glm::vec2> faceTextureCoords;
+		getFaceVertices(halfEdgeTable, halfEdgeTable.handle(faces[i]), faceVertices, faceNormals, faceTextureCoords);
+		vertices.insert(vertices.end(), faceVertices.begin(), faceVertices.end());
+		normals.insert(normals.end(), faceNormals.begin(), faceNormals.end());
+		textureCoords.insert(textureCoords.end(), faceTextureCoords.begin(), faceTextureCoords.end());
+	}
+
+	const int verticesCount = vertices.size();
+	pMesh->mVertices = new aiVector3D[verticesCount];
+	pMesh->mNormals = new aiVector3D[verticesCount];
+	pMesh->mNumVertices = verticesCount;
+
+	const int textureCoordsCount = textureCoords.size();
+	pMesh->mTextureCoords[0] = new aiVector3D[textureCoordsCount];
+	pMesh->mNumUVComponents[0] = textureCoordsCount;
+
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		pMesh->mVertices[i] = aiVector3D(vertices[i].x, vertices[i].y, vertices[i].z);
+		pMesh->mNormals[i] = aiVector3D(normals[i].x, normals[i].y, normals[i].z);
+	}
+
+	if (textureCoords.size() == vertices.size())
+	{
+		for (int i = 0; i < textureCoords.size(); i++)
+		{
+			if (!textureCoords.empty())
+			{
+				pMesh->mTextureCoords[0][i] = aiVector3D(textureCoords[i].x, textureCoords[i].y, 0);
+			}
+		}
+	}
+
+	pMesh->mFaces = new aiFace[vertices.size() / 3];
+	pMesh->mNumFaces = (unsigned int)(vertices.size() / 3);
+
+	int k = 0;
+	for (int i = 0; i < (vertices.size() / 3); i++)
+	{
+		aiFace& face = pMesh->mFaces[i];
+		face.mIndices = new unsigned int[3];
+		face.mNumIndices = 3;
+
+		face.mIndices[0] = k;
+		face.mIndices[1] = k + 1;
+		face.mIndices[2] = k + 2;
+		k = k + 3;
+	}
+}
+
+void ModelLoader::saveMaterial(Mesh* mesh, aiScene* scene, std::string const& path)
+{
+	auto pMaterial = scene->mMaterials[scene->mNumMaterials - 1];
+
+	aiColor3D ambientColor = aiColor3D(mesh->getMaterial().ambient.x, mesh->getMaterial().ambient.y, mesh->getMaterial().ambient.z);
+	aiColor3D diffuseColor = aiColor3D(mesh->getMaterial().diffuse.x, mesh->getMaterial().diffuse.y, mesh->getMaterial().diffuse.z);
+	aiColor3D specularColor = aiColor3D(mesh->getMaterial().specular.x, mesh->getMaterial().specular.y, mesh->getMaterial().specular.z);
+	aiColor3D emissiveColor = aiColor3D(mesh->getMaterial().emission.x, mesh->getMaterial().emission.y, mesh->getMaterial().emission.z);
+	float shininess = mesh->getMaterial().shininess;
+
+	pMaterial->AddProperty(&ambientColor, 1, AI_MATKEY_COLOR_AMBIENT);
+	pMaterial->AddProperty(&diffuseColor, 1, AI_MATKEY_COLOR_DIFFUSE);
+	pMaterial->AddProperty(&specularColor, 1, AI_MATKEY_COLOR_SPECULAR);
+	pMaterial->AddProperty(&emissiveColor, 1, AI_MATKEY_COLOR_EMISSIVE);
+	pMaterial->AddProperty(&shininess, 1, AI_MATKEY_SHININESS);
+
+	aiString ainame = aiString(mesh->getMaterial().name.c_str());
+	pMaterial->AddProperty(&ainame, AI_MATKEY_NAME);
+
+	if (mesh->getDiffuseMap())
+	{
+		aiString textureName = aiString(mesh->getDiffuseMap()->name.c_str());
+		pMaterial->AddProperty(&textureName, AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0));
+		std::string pathImage = path + "/" + mesh->getDiffuseMap()->name;
+		mesh->getDiffuseMap()->image.save(QString::fromStdString(pathImage));
+	}
+
+	if (mesh->getSpecularMap())
+	{
+		aiString textureName = aiString(mesh->getSpecularMap()->name.c_str());
+		pMaterial->AddProperty(&textureName, AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0));
+		std::string pathImage = path + "/" + mesh->getSpecularMap()->name;
+		mesh->getSpecularMap()->image.save(QString::fromStdString(pathImage));
+	}
+
+	if (mesh->getNormalMap())
+	{
+		aiString textureName = aiString(mesh->getNormalMap()->name.c_str());
+		pMaterial->AddProperty(&textureName, AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0));
+		std::string pathImage = path + "/" + mesh->getNormalMap()->name;
+		mesh->getNormalMap()->image.save(QString::fromStdString(pathImage));
 	}
 }
 
@@ -620,12 +603,7 @@ void ModelLoader::getFaceVertices(const HalfEdge::HalfEdgeTable& halfEdgeTable, 
 	{
 		textureCoords = { halfEdgeTable.deref(fh).textureCoords[0], halfEdgeTable.deref(fh).textureCoords[1], halfEdgeTable.deref(fh).textureCoords[2] };
 	}
-	else
-	{
-		//textureCoords.push_back(glm::vec2(0, 0));
-		//textureCoords.push_back(glm::vec2(0, 0));
-		//textureCoords.push_back(glm::vec2(0, 0));
-	}
+
 	if (tempVertices.size() == 4)
 	{
 		// Then it is quad face and we need to save second triangle
@@ -643,12 +621,6 @@ void ModelLoader::getFaceVertices(const HalfEdge::HalfEdgeTable& halfEdgeTable, 
 			textureCoords.push_back(halfEdgeTable.deref(fh).textureCoords[3]);
 			textureCoords.push_back(halfEdgeTable.deref(fh).textureCoords[0]);
 		}
-		else
-		{
-			//textureCoords.push_back(glm::vec2(0, 0));
-			//textureCoords.push_back(glm::vec2(0, 0));
-			//textureCoords.push_back(glm::vec2(0, 0));
-		}
 	}
 }
 
@@ -656,7 +628,7 @@ int ModelLoader::getMeshCount(const Model& model)
 {
 	std::vector<Node*> nodes = getNodeList(model);
 	int meshCount = 0;
-	for (auto node : nodes)
+	for (const auto& node : nodes)
 	{
 		meshCount += node->getMeshes().size();
 	}
