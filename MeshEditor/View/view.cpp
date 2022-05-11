@@ -50,13 +50,13 @@ public:
 		loader = new ModelLoader(renderEngine.get());
 
 		std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/textured-cube/cube.obj");
-	   // std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/red-cube.obj");
-        //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models1/backpack/low-poly-car.obj");
-        //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models/fbx/futuristicCar.dae");
-      //  std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models/obj/cube.obj");
-		//std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/test1.FBX");
+		// std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/red-cube.obj");
+		 //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models1/backpack/low-poly-car.obj");
+		 //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models/fbx/futuristicCar.dae");
+	   //  std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/models/obj/cube.obj");
+		 //std::unique_ptr<Node> rootNode = loader->loadModel("C:/Users/Stepan/Desktop/test1.FBX");
 		if (rootNode) {
-            rootNode->setName("car.obj");
+			rootNode->setName("car.obj");
 			//rootNode->getChildren().back()->setName("Solid");
 
 
@@ -173,11 +173,11 @@ public:
 		return pointLights;
 	}
 
-	Model* getModel() 
+	Model* getModel()
 	{
 		return modelPtr.get();
 	}
-	ModelLoader& getLoader() 
+	ModelLoader& getLoader()
 	{
 		return *loader;
 	}
@@ -440,7 +440,7 @@ void View::mousePressEvent(QMouseEvent* event)
 
 void View::mouseReleaseEvent(QMouseEvent* event)
 {
-	
+
 
 
 	ButtonCode buttonCode = ButtonCode::Unknown;
@@ -467,7 +467,7 @@ void View::mouseMoveEvent(QMouseEvent* event)
 	QPoint pos = event->pos();
 	double y = viewport.getHeight() - pos.y();
 	controllerDispatcher.processMouseMove(*this, pos.x(), pos.y());
-	
+
 	//forceActiveFocus();
 	update();
 }
@@ -678,8 +678,9 @@ void View::saveModel(QString path)
 {
 	path.remove("file:///");
 	std::string str = path.toStdString();
-	renderer->getLoader().saveModel(renderer->getModel(), str);
-int k = 0;
+	Model* modelPtr = renderer->getModel();
+	if (modelPtr)
+		renderer->getLoader().saveModel(*modelPtr, str);
 }
 
 void View::addNodeInfo()
