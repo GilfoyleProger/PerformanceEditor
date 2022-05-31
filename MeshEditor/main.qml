@@ -61,17 +61,7 @@ Rectangle {
                 RowLayout {
                     spacing: 20
 
-                    Button {
-                        text: qsTr("Export")
-                        background: Rectangle {
-                            color: "white"
-                        }
-                        Layout.preferredHeight: 40
-                        Layout.preferredWidth: 110
-                        onClicked: {
-                            exportDialog.open();
-                        }
-                    }
+
 
                     Button {
                         text: qsTr("Import")
@@ -82,6 +72,18 @@ Rectangle {
                         Layout.preferredWidth: 110
                         onClicked: {
                             importDialog.open();
+                        }
+                    }
+
+                    Button {
+                        text: qsTr("Export")
+                        background: Rectangle {
+                            color: "white"
+                        }
+                        Layout.preferredHeight: 40
+                        Layout.preferredWidth: 110
+                        onClicked: {
+                            exportDialog.open();
                         }
                     }
                 }

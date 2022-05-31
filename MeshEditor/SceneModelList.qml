@@ -11,8 +11,7 @@ import QtQuick.Controls.Material 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 1.3
 
-Rectangle
-{
+Rectangle {
     id: root
     color: "white"
     height: layout.height
@@ -35,7 +34,7 @@ Rectangle
             ToolTip.delay: 1000
             ToolTip.timeout: 5000
             ToolTip.visible: hovered && !pressed
-            ToolTip.text: qsTr("Show/Hide Models")
+            ToolTip.text: qsTr("Show/Hide Solids")
 
             Layout.alignment: Qt.AlignTop
             Layout.preferredHeight: 50
@@ -55,7 +54,7 @@ Rectangle
 
                 Text {
                     id: buttonName
-                    text: qsTr("Models")
+                    text: qsTr("Solid List")
                     Layout.leftMargin: 5
                     color: "black"
                 }
@@ -63,9 +62,10 @@ Rectangle
                 Image {
                     id:buttonPointer
                     source: "/icons/expand-button.png"
-                    rotation: showButton.checked ? 180 : 0
-                    Layout.preferredHeight: 10
+                    rotation: showButton.checked ? 90 : 0
+                    Layout.preferredHeight: 11
                     Layout.preferredWidth: height
+                    Layout.rightMargin: 2
                 }
             }
         }
@@ -85,29 +85,14 @@ Rectangle
                 id: modelRow
                 width: root.width
                 height: 30
-//focus:true
 
-                ToolTip
-                {
+                ToolTip {
                     id: modelNameToolTip
                     delay: 1000
                     timeout: 5000
-                visible: mouseArea.containsMouse//mouseArea.hovered
-                text: modelData.name
+                    visible: mouseArea.containsMouse
+                    text: modelData.name
                 }
-/*
-                ToolTip
-                {
-                    id:tooltip
-                    delay: 1000
-                    timeout: 5000
-                visible: hovered
-                text: "asdasdasdasd"
-                }*/
-               // ToolTip.delay: 1000
-                //ToolTip.timeout: 5000
-               // ToolTip.visible: true
-                //ToolTip.text: qsTr("Bubum")
 
                 RowLayout {
                     height: 30
@@ -121,7 +106,7 @@ Rectangle
                         ToolTip.delay: 1000
                         ToolTip.timeout: 5000
                         ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Remove Point Light")
+                        ToolTip.text: qsTr("Remove Solid")
 
                         background: Rectangle {
                             color: showButton.enabled? "white":"#0000000"
@@ -130,8 +115,6 @@ Rectangle
                         }
 
                         RowLayout {
-                            id: asd
-
                             Image {
                                 source: "/icons/delete.png"
                                 Layout.preferredHeight: 16
@@ -150,42 +133,31 @@ Rectangle
                     visible: modelData.recursivelySelected
                     z: -1
                 }
+
                 MouseArea {
                     id: mouseArea
                     anchors.fill: parent
-                     hoverEnabled: true
-                   // onHoveredChanged: tooltip.visible=true
-                    onClicked: { modelData.recursivelySelected = true
-                    modelNameToolTip.hide()
+                    hoverEnabled: true
+
+                    onClicked: {
+                        modelData.recursivelySelected = true
+                        modelNameToolTip.hide()
                     }
                     z: -1
                 }
 
                 RowLayout {
-                  //  Layout.preferredWidth: root.width-4
-                  // Layout.preferredHeight: 30
-
-                    width: root.width-4
+                    width: root.width - 4
                     height: 30
+
                     Text {
-
-
-
-                        id:sdasasdasdas
-                       width:80
-                       // Layout.preferredWidth:80
+                        id: modelNameText
+                        Layout.preferredWidth: 80
                         height: 30
-                        //width:20
-                       // clip: true
-                       // wrapMode: Text.WrapAnywhere
-                        // wrapMode: Text.WordWrap
- //anchors.left: parent.left
- // anchors.right: parent.right
                         Layout.leftMargin: 5
-                        text:  modelData.name//.length < 20 ? modelData.name : "sd"
+                        text: modelData.name
                         elide: Text.ElideRight
                     }
-
                 }
             }
         }

@@ -94,7 +94,7 @@ Component.onCompleted:{
 
             ColorDialog {
                 id: emissionColorDialog
-                title: "Please choose specular value"
+                title: "Please choose background color"
                 onAccepted: {
                     ModelTab.backgroundColor = Qt.vector3d(emissionColorDialog.currentColor.r, emissionColorDialog.currentColor.g, emissionColorDialog.currentColor.b)
                 }

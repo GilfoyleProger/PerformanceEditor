@@ -55,14 +55,14 @@ Rectangle
 
                 Text {
                     id: buttonName
-                    text: qsTr("Lights")
+                    text: qsTr("Light List")
                     font.pointSize: 8
                     Layout.leftMargin: 5
                     color: "black"
                 }
 
                 ColumnLayout {
-                    Layout.leftMargin: 38
+                    Layout.leftMargin: 19//38
 
                     Button {
                         Layout.preferredHeight: 24
@@ -74,7 +74,7 @@ Rectangle
                         ToolTip.text: qsTr("Add Point Light")
 
                         background: Rectangle {
-                            color: showButton.enabled? "white":"#0000000"
+                            color: showButton.enabled? "white" : "#0000000"
                             border.width: 0
                             border.color: showButton.enabled ? "black" : "gray"
                         }
@@ -90,10 +90,10 @@ Rectangle
 
                     Image {
                         id: buttonPointer
-                        Layout.leftMargin: 10
+                        Layout.leftMargin: 8
                         source: "/icons/expand-button.png"
-                        rotation: showButton.checked ? 180 : 0
-                        Layout.preferredHeight: 10
+                        rotation: showButton.checked ? 90 : 0
+                        Layout.preferredHeight: 11
                         Layout.preferredWidth: height
                     }
                 }

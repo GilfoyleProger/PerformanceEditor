@@ -59,6 +59,18 @@ id:layout
         }
     }
 
+    Switch {
+        id: edgedModeSwitch
+        Layout.topMargin: 5//10
+        Layout.leftMargin: 20
+        property bool isEnable: true
+        text: isEnable ? qsTr("Edges Mode Enabled") : qsTr("Edges Mode Disabled")
+        onClicked: {
+            isEnable = !isEnable
+            ModelTab.edgesModeEnabled = isEnable
+        }
+    }
+
 
     Text {
         Layout.leftMargin: 20
@@ -121,6 +133,10 @@ id:layout
 
                         lightingSwitch.isEnable = ModelTab.lightingEnabled
                         lightingSwitch.checked = lightingSwitch.isEnable
+
+                        edgedModeSwitch.isEnable = ModelTab.edgesModeEnabled
+                        edgedModeSwitch.checked = edgedModeSwitch.isEnable
+
 
                         materialList.currentMaterialIndex = index
 
@@ -202,6 +218,9 @@ id:layout
 
                     lightingSwitch.isEnable = ModelTab.lightingEnabled
                     lightingSwitch.checked = lightingSwitch.isEnable
+
+                    edgedModeSwitch.isEnable = ModelTab.edgesModeEnabled
+                    edgedModeSwitch.checked = edgedModeSwitch.isEnable
                 }
             }
 
@@ -256,6 +275,9 @@ id:layout
 
                     lightingSwitch.isEnable = ModelTab.lightingEnabled
                     lightingSwitch.checked = lightingSwitch.isEnable
+
+                    edgedModeSwitch.isEnable = ModelTab.edgesModeEnabled
+                    edgedModeSwitch.checked = edgedModeSwitch.isEnable
                 }
             }
 
@@ -324,6 +346,9 @@ id:layout
 
                     lightingSwitch.isEnable = ModelTab.lightingEnabled
                     lightingSwitch.checked = lightingSwitch.isEnable
+
+                    edgedModeSwitch.isEnable = ModelTab.edgesModeEnabled
+                    edgedModeSwitch.checked = edgedModeSwitch.isEnable
                 }
             }
 
@@ -413,6 +438,9 @@ id:layout
 
                     lightingSwitch.isEnable = ModelTab.lightingEnabled
                     lightingSwitch.checked = lightingSwitch.isEnable
+
+                    edgedModeSwitch.isEnable = ModelTab.edgesModeEnabled
+                    edgedModeSwitch.checked = edgedModeSwitch.isEnable
                 }
             }
 
